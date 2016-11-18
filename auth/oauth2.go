@@ -14,11 +14,6 @@ import (
 )
 
 func Login() *http.Client {
-	c := make(chan string)
-	state := getRandomState(18)
-	go startRedirectServer(c, state)
-	port := <-c
-
 	ctx := context.Background()
 	conf := &oauth2.Config{
 		ClientID:     "frsyvri19q4rtqvkpamgyjexu8zlkaas",
@@ -27,8 +22,25 @@ func Login() *http.Client {
 			AuthURL:  "https://account.box.com/api/oauth2/authorize",
 			TokenURL: "https://app.box.com/api/oauth2/token",
 		},
-		RedirectURL: "http://localhost:" + port,
 	}
+
+	if tok, err := loadToken(); err == nil {
+		client := conf.Client(ctx, tok)
+		r, _ := client.Get("https://api.box.com/2.0/users/me")
+		if r.StatusCode == 200 {
+			fmt.Println("Already logged in")
+			return client
+		}
+		fmt.Println("Invalid session")
+		clearStore()
+	}
+
+	c := make(chan string)
+	state := getRandomState(18)
+	go startRedirectServer(c, state)
+
+	port := <-c
+	conf.RedirectURL = "http://localhost:" + port
 
 	//url := conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	url := getDirectShibAuthCodeURL(conf, state)
@@ -45,6 +57,8 @@ func Login() *http.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	saveToken(tok)
 
 	fmt.Println("Login successful")
 

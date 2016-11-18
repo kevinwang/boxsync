@@ -11,7 +11,7 @@ import (
 func main() {
 	client := auth.Login()
 
-	r, err := client.Get("https://uofi.app.box.com/api/2.0/folders/0")
+	r, err := client.Get("https://api.box.com/2.0/folders/0")
 	if err != nil {
 		log.Fatal(err)
 	}
