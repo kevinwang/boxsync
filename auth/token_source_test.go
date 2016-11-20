@@ -28,6 +28,7 @@ var (
 )
 
 func TestTokensEqual(t *testing.T) {
+	assert.True(t, tokensEqual(nil, nil))
 	assert.True(t, tokensEqual(&tok1, &tok1))
 	assert.True(t, tokensEqual(&tok1, &tok2))
 	assert.False(t, tokensEqual(&tok1, &tok3))
