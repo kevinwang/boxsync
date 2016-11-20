@@ -3,6 +3,48 @@
 	"ignore": "test appengine",
 	"package": [
 		{
+			"checksumSHA1": "/5cvgU+J4l7EhMXTK76KaCAfOuU=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
+		},
+		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
+		},
+		{
+			"checksumSHA1": "K0crHygPTP42i1nLKWphSlvOQJw=",
+			"path": "github.com/stretchr/objx",
+			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
+			"revisionTime": "2015-09-28T12:21:52Z"
+		},
+		{
+			"checksumSHA1": "/kKwYqD04AkkDZFQhGwklKw3RFA=",
+			"path": "github.com/stretchr/testify",
+			"revision": "18a02ba4a312f95da08ff4cfc0055750ce50ae9e",
+			"revisionTime": "2016-11-17T07:43:51Z"
+		},
+		{
+			"checksumSHA1": "hIEmcd7hIDqO/xWSp1rJJHd0TpE=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "18a02ba4a312f95da08ff4cfc0055750ce50ae9e",
+			"revisionTime": "2016-11-17T07:43:51Z"
+		},
+		{
+			"checksumSHA1": "fg3TzS9/QK3wZbzei3Z6O8XPLHg=",
+			"path": "github.com/stretchr/testify/http",
+			"revision": "18a02ba4a312f95da08ff4cfc0055750ce50ae9e",
+			"revisionTime": "2016-11-17T07:43:51Z"
+		},
+		{
+			"checksumSHA1": "cKBlbfqUWhlImzYUu0QFw1hOHwI=",
+			"path": "github.com/stretchr/testify/mock",
+			"revision": "18a02ba4a312f95da08ff4cfc0055750ce50ae9e",
+			"revisionTime": "2016-11-17T07:43:51Z"
+		},
+		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
 			"path": "golang.org/x/net/context",
 			"revision": "4971afdc2f162e82d185353533d3cf16188a9f4e",

@@ -34,7 +34,7 @@ func (s *callbackTokenSource) Token() (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	if t != s.t {
+	if !(t != nil && s.t != nil) || *t != *s.t {
 		err := s.callback(t)
 		if err != nil {
 			return nil, err
