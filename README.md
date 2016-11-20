@@ -28,3 +28,28 @@ go install ./... # Build all main packages underneath the current directory and 
 To run, just run `boxsync` because `$GOPATH/bin` is in your `$PATH`.
 
 We will use [govendor](https://github.com/kardianos/govendor) for vendoring.
+
+## Code style
+
+In general, conform to the style guidelines described [here](https://github.com/golang/go/wiki/CodeReviewComments) and configure your text editor to run [gofmt](https://golang.org/cmd/gofmt/) on save. Project-specific code style guidelines are described below.
+
+### Import order
+
+Imports should be organized into the following three groups, with blank lines between them.
+
+```go
+import (
+    // Standard library packages
+    "testing"
+    "time"
+
+    // External (vendor) packages
+    "github.com/stretchr/testify/assert"
+    "golang.org/x/oauth2"
+
+    // Internal packages
+    "gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth/mocks"
+)
+```
+
+Imports in each group should be alphabetized; `gofmt` will do this automatically.
