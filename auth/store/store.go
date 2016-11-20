@@ -1,4 +1,4 @@
-package auth
+package store
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ const (
 	storeFileName = ".boxsync_session.json"
 )
 
-func saveToken(token *oauth2.Token) error {
+func Save(token *oauth2.Token) error {
 	tokJSON, err := json.Marshal(token)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func saveToken(token *oauth2.Token) error {
 	return nil
 }
 
-func loadToken() (*oauth2.Token, error) {
+func Load() (*oauth2.Token, error) {
 	tokJSON, err := ioutil.ReadFile(getStoreFilePath())
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func loadToken() (*oauth2.Token, error) {
 	return &token, nil
 }
 
-func clearStore() {
+func Clear() {
 	os.Remove(getStoreFilePath())
 }
 

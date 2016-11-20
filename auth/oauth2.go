@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -11,9 +10,11 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+
+	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth/store"
 )
 
-func Login() *http.Client {
+func Login() (*http.Client, error) {
 	ctx := context.Background()
 	conf := &oauth2.Config{
 		ClientID:     "frsyvri19q4rtqvkpamgyjexu8zlkaas",
@@ -24,17 +25,32 @@ func Login() *http.Client {
 		},
 	}
 
-	if tok, err := loadToken(); err == nil {
-		client := conf.Client(ctx, tok)
-		r, _ := client.Get("https://api.box.com/2.0/users/me")
-		if r.StatusCode == 200 {
+	if tok, err := store.Load(); err == nil {
+		client := newClient(conf, ctx, tok)
+		r, err := client.Get("https://api.box.com/2.0/users/me")
+		if err != nil {
+			fmt.Println(err)
+			store.Clear()
+		} else if r.StatusCode != 200 {
+			fmt.Println("Invalid session, clearing")
+			store.Clear()
+		} else {
 			fmt.Println("Already logged in")
-			return client
+			return client, nil
 		}
-		fmt.Println("Invalid session")
-		clearStore()
 	}
 
+	tok, err := authorize(conf, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Login successful")
+
+	return newClient(conf, ctx, tok), nil
+}
+
+func authorize(conf *oauth2.Config, ctx context.Context) (*oauth2.Token, error) {
 	c := make(chan string)
 	state := getRandomState(18)
 	go startRedirectServer(c, state)
@@ -55,14 +71,20 @@ func Login() *http.Client {
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	saveToken(tok)
+	err = store.Save(tok)
+	if err != nil {
+		return nil, err
+	}
 
-	fmt.Println("Login successful")
+	return tok, nil
+}
 
-	return conf.Client(ctx, tok)
+func newClient(conf *oauth2.Config, ctx context.Context, t *oauth2.Token) *http.Client {
+	src := CallbackTokenSource(t, conf.TokenSource(ctx, t), store.Save)
+	return oauth2.NewClient(ctx, src)
 }
 
 func getDirectShibAuthCodeURL(conf *oauth2.Config, state string) string {

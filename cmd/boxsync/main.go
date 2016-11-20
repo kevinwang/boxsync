@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	client := auth.Login()
+	client, err := auth.Login()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	r, err := client.Get("https://api.box.com/2.0/folders/0")
 	if err != nil {
