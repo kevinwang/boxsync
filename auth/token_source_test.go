@@ -27,6 +27,14 @@ var (
 	}
 )
 
+func TestTokensEqual(t *testing.T) {
+	assert.True(t, tokensEqual(&tok1, &tok1))
+	assert.True(t, tokensEqual(&tok1, &tok2))
+	assert.False(t, tokensEqual(&tok1, &tok3))
+	assert.False(t, tokensEqual(nil, &tok1))
+	assert.False(t, tokensEqual(&tok1, nil))
+}
+
 func TestSameToken(t *testing.T) {
 	src := new(mocks.TokenSource)
 	src.On("Token").Return(&tok2, nil).Once()

@@ -34,7 +34,7 @@ func (s *callbackTokenSource) Token() (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	if !(t != nil && s.t != nil) || *t != *s.t {
+	if !tokensEqual(t, s.t) {
 		err := s.callback(t)
 		if err != nil {
 			return nil, err
@@ -43,4 +43,13 @@ func (s *callbackTokenSource) Token() (*oauth2.Token, error) {
 
 	s.t = t
 	return t, nil
+}
+
+func tokensEqual(t1, t2 *oauth2.Token) bool {
+	return (t1 == t2 ||
+		(t1 != nil && t2 != nil &&
+			t1.AccessToken == t2.AccessToken &&
+			t1.TokenType == t2.TokenType &&
+			t1.RefreshToken == t2.RefreshToken &&
+			t1.Expiry == t2.Expiry))
 }
