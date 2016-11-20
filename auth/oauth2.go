@@ -123,7 +123,8 @@ func startRedirectServer(c chan<- string, expectedState string) {
 	_, port, _ := net.SplitHostPort(listener.Addr().String())
 	c <- port
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 
 		query := r.URL.Query()
@@ -156,5 +157,5 @@ func startRedirectServer(c chan<- string, expectedState string) {
 		listener.Close()
 	})
 
-	http.Serve(listener, nil)
+	http.Serve(listener, mux)
 }
