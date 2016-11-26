@@ -55,3 +55,13 @@ import (
 ```
 
 Imports in each group should be alphabetized; `gofmt` will do this automatically.
+
+## Editors
+### Vim plugins
+I found following plugins can come handy for vim.
+(1) Install Vundle for vim(https://github.com/VundleVim/Vundle.vim.git)
+(2) Install YouCompleteMe for go (https://github.com/Valloric/YouCompleteMe.git)
+(3) Install vim-go for go (https://github.com/fatih/vim-go.git)
+(4) Install screen tool tmux.
+(5) Install tagging tool gotags.
+Don't forget to configure ~/.vimrc, various configurations can be found online.
