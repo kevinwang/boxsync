@@ -9,6 +9,12 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "hveFTNQ9YEyYRs6SWuXM+XU9qRI=",
+			"path": "github.com/fsnotify/fsnotify",
+			"revision": "fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197",
+			"revisionTime": "2016-10-26T20:31:22Z"
+		},
+		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
@@ -61,6 +67,12 @@
 			"path": "golang.org/x/oauth2/internal",
 			"revision": "d5040cddfc0da40b408c9a1da4728662435176a9",
 			"revisionTime": "2016-11-03T22:50:36Z"
+		},
+		{
+			"checksumSHA1": "MlTI84eWAFvqeRgXxBtjRYHk1yQ=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "30237cf4eefd639b184d1f2cb77a581ea0be8947",
+			"revisionTime": "2016-11-19T15:29:01Z"
 		}
 	],
 	"rootPath": "gitlab-beta.engr.illinois.edu/sp-box/boxsync"
