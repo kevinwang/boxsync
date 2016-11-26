@@ -28,6 +28,8 @@ go install ./... # Build all main packages underneath the current directory and 
 To run, just run `boxsync` because `$GOPATH/bin` is in your `$PATH`.
 
 We will use [govendor](https://github.com/kardianos/govendor) for vendoring.
+To add dependencies, a proper usage is like:
+govendor fetch github.com/fsnotify/fsnotify
 
 ## Code style
 
