@@ -10,6 +10,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+//set it for 1 second now
 const (
 	minInterval = (time.Second)
 )
@@ -24,11 +25,20 @@ type TriggerInst struct {
 }
 
 func (inst *TriggerInst) canrun() bool {
-	//Todo, implement this method
-	return
+	inst.mutexLock.Lock()
+	defer inst.mutexLock.Unlock()
+	if inst.isBusy || time.Now().Sub(inst.lastUpdateTime) < minInterval {
+		return false
+	}
+
+	inst.isBusy = true
+	return true
 }
 
 func (inst *TriggerInst) setLastUpdate() {
-	//Todo, implement this method
+	inst.mutexLock.Lock()
+	defer inst.mutexLock.Unlock()
+	inst.lastUpdateTime = time.Now()
+	inst.isBusy = false
 	return
 }
