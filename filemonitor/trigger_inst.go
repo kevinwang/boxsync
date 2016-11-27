@@ -1,13 +1,8 @@
 package filemonitor
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 //set it for 1 second now
@@ -16,11 +11,11 @@ const (
 )
 
 type TriggerInst struct {
-	filepath       string
-	filename       string
+	filePath       string
+	fileName       string
 	mutexLock      sync.Mutex
 	isBusy         bool
-	lastUpdateTime time.time
+	lastUpdateTime time.Time
 	callback       onFileEventCallback
 }
 

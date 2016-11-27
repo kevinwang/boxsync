@@ -16,11 +16,11 @@ type onFileEventCallback func(*FileWatchEvent)
 type EventType int
 
 const (
-	Create EventType = iota
-	Write
-	Remove
-	Rename
-	Attrib
+	EvTypeCreate EventType = iota
+	EvTypeWrite
+	EvTypeRemove
+	EvTypeRename
+	EvTypeChmod
 )
 
 type FileWatcher struct {
@@ -31,8 +31,8 @@ type FileWatcher struct {
 }
 
 type FileWatchEvent struct {
-	filepath  string
-	eventType EventType
+	FilePath string
+	Type     EventType
 }
 
 //Public methods start here
@@ -48,14 +48,28 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 		fmt.Fprintln(os.Stderr, err)
 		fileWatcher = nil
 	} else {
-		fileWatcher.triggerInstsMap = map[string]*triggerInst{}
+		fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 		fileWatcher.callback = callback
 		//start a thread to watch
 		go fileWatcher.startRunning()
 	}
+
+	return fileWatcher
 }
 
-func (fileWatcher *FileWatcher) Watch(filepath string) {
+func (fileWatcher *FileWatcher) AddAll(filePath string) {
+	dirs, err := fileWatcher.getSubFolders(filePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "directory transvering err", err)
+		return
+	}
+
+	for _, dir := range dirs {
+		fileWatcher.Add(dir)
+	}
+}
+
+func (fileWatcher *FileWatcher) Add(filePath string) {
 	//Has not been initlized, do nothing now.
 	if fileWatcher.watcher == nil {
 		return
@@ -64,55 +78,126 @@ func (fileWatcher *FileWatcher) Watch(filepath string) {
 	fileWatcher.mutexLock.Lock()
 	defer fileWatcher.mutexLock.Unlock()
 
-	err := fileWatcher.watcher.Watch(filepath)
+	filePath = filepath.Clean(filePath)
+
+	err := fileWatcher.watcher.Add(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "tried to watch, but err:", err)
+		fmt.Fprintln(os.Stderr, "tried to watch:", filePath, ", but err:", err)
 	}
 }
 
-func (fileWatcher *FileWatcher) RemoveWatch(filepath string) {
+func (fileWatcher *FileWatcher) Remove(filePath string) {
 	//Has not been initilized, do nothing now.
 	if fileWatcher.watcher == nil {
 		return
 	}
 
 	fileWatcher.mutexLock.Lock()
-	def fileWatcher.mutexLock.Unlock()
+	defer fileWatcher.mutexLock.Unlock()
 
-	err := fileWatcher.watcher.RemoveWatch(filepath);
+	err := fileWatcher.watcher.Remove(filePath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
 func (fileWatcher *FileWatcher) WaitForKill() {
-	onkillChannel := make(chan os.Signal, 1)
-
-	//just try to capture kill, and interrupt signals now...
-	signal.Notify(onkillChannel, os.Interrupt, os.Kill)
-	<-onkillChannel
-	fmt.Fprintln(os.Stderr, "\n kill signal triggerred, exiting...")
+	onSignalKill := make(chan os.Signal, 1)
+	signal.Notify(onSignalKill, os.Interrupt, os.Kill)
+	<-onSignalKill
+	fmt.Fprintln(os.Stderr, "\nKill signal triggered, quit...")
 }
 
 func (fileWatcher *FileWatcher) Close() {
-	//do clean up here
 	fileWatcher.watcher.Close()
 	fileWatcher.watcher = nil
 }
 
 //Private methods start here
 
+func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, err error) {
+	err = filepath.Walk(filePath, func(newPath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			return nil
+		}
+
+		dirs = append(dirs, newPath)
+		return nil
+
+	})
+
+	return dirs, err
+}
+
 func (fileWatcher *FileWatcher) startRunning() {
-	//Todo, implement this method
-	return
+	for {
+		select {
+		case fileEvent := <-fileWatcher.watcher.Events:
+			fileWatcher.triggerEvent(&fileEvent)
+		case errorEvent := <-fileWatcher.watcher.Errors:
+			fmt.Fprintln(os.Stderr, errorEvent.Error())
+		}
+	}
 }
 
-func (fileWatcher *FileWatcher) triggerEvent(fileEvent *fsnotify.FileEvent) {
-	//Todo, implement this method
-	return
+func (fileWatcher *FileWatcher) triggerEvent(fileEvent *fsnotify.Event) {
+	fileWatcher.mutexLock.Lock()
+	defer fileWatcher.mutexLock.Unlock()
+
+	var triggerInst *TriggerInst
+	var ok bool
+	triggerInst, ok = fileWatcher.triggerInstsMap[fileEvent.Name]
+	//first time event firing
+	if !ok {
+		triggerInst = &TriggerInst{filePath: fileEvent.Name, fileName: filepath.Base(fileEvent.Name), isBusy: false}
+		fileWatcher.triggerInstsMap[fileEvent.Name] = triggerInst
+	}
+	//start a thread to handle call back function.
+	go fileWatcher.handleCallback(triggerInst, fileEvent)
 }
 
-func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEvent *fsnotify.FileEvent) {
-	//Todo, implement this method
-	return
+func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
+	//cannot run this at this point, do nothing.
+	if !triggerInst.canrun() {
+		return
+	}
+
+	defer triggerInst.setLastUpdate()
+
+	//wait...
+	timeChannel := time.Tick(minInterval)
+	<-timeChannel
+
+	var eventType EventType
+
+	//check different file types:
+	if fileEvent.Op&fsnotify.Write == fsnotify.Write {
+		eventType = EvTypeWrite
+	} else if fileEvent.Op&fsnotify.Create == fsnotify.Create {
+		eventType = EvTypeCreate
+		fileInfo, err := os.Stat(fileEvent.Name)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "checking fileinfo err:", err)
+			return
+		}
+		//new directory, watch it too.
+		if fileInfo.IsDir() {
+			fileWatcher.AddAll(fileEvent.Name)
+		}
+	} else if fileEvent.Op&fsnotify.Remove == fsnotify.Remove {
+		eventType = EvTypeRemove
+	} else if fileEvent.Op&fsnotify.Rename == fsnotify.Rename {
+		eventType = EvTypeRename
+	} else if fileEvent.Op&fsnotify.Chmod == fsnotify.Chmod {
+		eventType = EvTypeChmod
+	} else {
+		fmt.Fprintln(os.Stderr, "unknown file event...")
+		return
+	}
+
+	fileWatcher.callback(&FileWatchEvent{FilePath: fileEvent.Name, Type: eventType})
 }
