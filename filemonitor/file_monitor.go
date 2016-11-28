@@ -89,6 +89,18 @@ func (fileWatcher *FileWatcher) Add(filePath string) {
 	}
 }
 
+func (fileWatcher *FileWatcher) RemoveAll(filePath string) {
+	dirs, err := fileWatcher.getSubFolders(filePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "directory traversing err:", err)
+		return
+	}
+
+	for _, dir := range dirs {
+		fileWatcher.Remove(dir)
+	}
+}
+
 func (fileWatcher *FileWatcher) Remove(filePath string) {
 	//Has not been initilized, do nothing now.
 	if fileWatcher.watcher == nil {
