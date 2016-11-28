@@ -35,7 +35,9 @@ type FileWatchEvent struct {
 	Type     EventType
 }
 
+//--------------------------------------
 //Public methods start here
+//--------------------------------------
 
 func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	fileWatcher := new(FileWatcher)
@@ -45,14 +47,15 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 
 	//fsnotify fails...
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "calling fsnotify.NewWatcher fails:", err)
 		fileWatcher = nil
-	} else {
-		fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
-		fileWatcher.callback = callback
-		//start a thread to watch
-		go fileWatcher.startRunning()
+		return nil
 	}
+
+	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
+	fileWatcher.callback = callback
+	//start a thread to watch
+	go fileWatcher.startRunning()
 
 	return fileWatcher
 }
@@ -60,7 +63,7 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 func (fileWatcher *FileWatcher) AddAll(filePath string) {
 	dirs, err := fileWatcher.getSubFolders(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "directory transvering err", err)
+		fmt.Fprintln(os.Stderr, "directory travering err:", err)
 		return
 	}
 
@@ -82,7 +85,7 @@ func (fileWatcher *FileWatcher) Add(filePath string) {
 
 	err := fileWatcher.watcher.Add(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "tried to watch:", filePath, ", but err:", err)
+		fmt.Fprintln(os.Stderr, "tried to watch:", filePath, ", but err calling fsnotify add:", err)
 	}
 }
 
@@ -95,9 +98,11 @@ func (fileWatcher *FileWatcher) Remove(filePath string) {
 	fileWatcher.mutexLock.Lock()
 	defer fileWatcher.mutexLock.Unlock()
 
+	filePath = filepath.Clean(filePath)
+
 	err := fileWatcher.watcher.Remove(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "tried to remove:", filePath, ", but err calling fsnotify remove:", err)
 	}
 }
 
@@ -113,7 +118,9 @@ func (fileWatcher *FileWatcher) Close() {
 	fileWatcher.watcher = nil
 }
 
+//------------------------------------------
 //Private methods start here
+//------------------------------------------
 
 func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, err error) {
 	err = filepath.Walk(filePath, func(newPath string, info os.FileInfo, err error) error {
