@@ -1,0 +1,14 @@
+before_script:
+  - export GOPATH=/go
+  - export REPO_PATH=$(pwd)
+  - mkdir -p $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box
+  - ln -s $REPO_PATH $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+  - cd $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+
+build:
+  stage: build
+  script: go build ./...
+
+test:
+  stage: build
+  script: go test -v ./...
