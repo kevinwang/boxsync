@@ -13,6 +13,13 @@ import (
 
 type onFileEventCallback func(*FileWatchEvent)
 
+type FileWatcherState int
+
+const (
+	StateWatching = iota
+	StateClosed
+)
+
 type EventType int
 
 const (
@@ -28,6 +35,7 @@ type FileWatcher struct {
 	triggerInstsMap map[string]*TriggerInst
 	mutexLock       sync.Mutex
 	callback        onFileEventCallback
+	state           FileWatcherState
 }
 
 type FileWatchEvent struct {
@@ -55,12 +63,19 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 	fileWatcher.callback = callback
 	//start a thread to watch
+	fileWatcher.state = StateWatching
 	go fileWatcher.startRunning()
 
 	return fileWatcher
 }
 
 func (fileWatcher *FileWatcher) AddAll(filePath string) {
+	//Has not been initialized, do nothing now.
+	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
+		return
+	}
+
 	dirs, err := fileWatcher.getSubFolders(filePath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "directory travering err:", err)
@@ -73,8 +88,9 @@ func (fileWatcher *FileWatcher) AddAll(filePath string) {
 }
 
 func (fileWatcher *FileWatcher) Add(filePath string) {
-	//Has not been initlized, do nothing now.
+	//Has not been initialized, do nothing now.
 	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
 		return
 	}
 
@@ -90,6 +106,12 @@ func (fileWatcher *FileWatcher) Add(filePath string) {
 }
 
 func (fileWatcher *FileWatcher) RemoveAll(filePath string) {
+	//Has not been initialized, do nothing now.
+	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
+		return
+	}
+
 	dirs, err := fileWatcher.getSubFolders(filePath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "directory traversing err:", err)
@@ -102,8 +124,9 @@ func (fileWatcher *FileWatcher) RemoveAll(filePath string) {
 }
 
 func (fileWatcher *FileWatcher) Remove(filePath string) {
-	//Has not been initilized, do nothing now.
+	//Has not been initialized, do nothing now.
 	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
 		return
 	}
 
@@ -123,10 +146,18 @@ func (fileWatcher *FileWatcher) WaitForKill() {
 	signal.Notify(onSignalKill, os.Interrupt, os.Kill)
 	<-onSignalKill
 	fmt.Fprintln(os.Stderr, "\nKill signal triggered, quit...")
+
+	if fileWatcher.state == StateWatching {
+		fileWatcher.Close()
+	}
 }
 
 func (fileWatcher *FileWatcher) Close() {
-	fileWatcher.watcher.Close()
+	err := fileWatcher.watcher.Close()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "watcher Close error:", err)
+	}
+	fileWatcher.state = StateClosed
 	fileWatcher.watcher = nil
 }
 
@@ -155,7 +186,15 @@ func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, e
 func (fileWatcher *FileWatcher) startRunning() {
 	for {
 		select {
-		case fileEvent := <-fileWatcher.watcher.Events:
+		case fileEvent, ok := <-fileWatcher.watcher.Events:
+			if !ok {
+				if fileWatcher.state == StateClosed {
+					fmt.Fprintln(os.Stdout, "watcher Closed")
+				} else {
+					fmt.Fprintln(os.Stderr, "unknown errors")
+				}
+				return
+			}
 			fileWatcher.triggerEvent(&fileEvent)
 		case errorEvent := <-fileWatcher.watcher.Errors:
 			fmt.Fprintln(os.Stderr, errorEvent.Error())
