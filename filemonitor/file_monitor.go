@@ -177,7 +177,6 @@ func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, e
 
 		dirs = append(dirs, newPath)
 		return nil
-
 	})
 
 	return dirs, err
