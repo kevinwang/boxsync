@@ -3,7 +3,6 @@ package filemonitor
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sync"
 	"time"
@@ -42,8 +41,7 @@ type FileWatchEvent struct {
 
 type FileWatcher struct {
 	//public
-	FileEventC    chan FileWatchEvent
-	CommonSignalC chan os.Signal
+	FileEventC chan FileWatchEvent
 
 	//private
 	watcher         *fsnotify.Watcher
@@ -72,8 +70,6 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 
 	//public members
 	fileWatcher.FileEventC = make(chan FileWatchEvent, maxEventCount+1)
-	fileWatcher.CommonSignalC = make(chan os.Signal, 1)
-	signal.Notify(fileWatcher.CommonSignalC, os.Interrupt, os.Kill)
 
 	//private members
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}

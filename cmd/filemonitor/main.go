@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 
 	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/filemonitor"
 )
@@ -32,6 +33,9 @@ func main() {
 	pathPtr := flag.String("path", "./", "file path to watch")
 	flag.Parse()
 
+	killSignalC := make(chan os.Signal, 1)
+	signal.Notify(killSignalC, os.Interrupt, os.Kill)
+
 	//simple main to test if filemonitor package works....
 	watcher := filemonitor.NewWatcher(printFileEvent)
 
@@ -41,7 +45,7 @@ func main() {
 		select {
 		case fileEvent := <-watcher.FileEventC:
 			printFileEvent(&fileEvent)
-		case <-watcher.CommonSignalC:
+		case <-killSignalC:
 			//for now just handle kill signals
 			fmt.Fprintln(os.Stderr, "\n Kill signal triggered, quit...")
 			watcher.Close()
