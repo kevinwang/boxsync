@@ -10,9 +10,27 @@ import (
     "strings"
     "log"
     "fmt"
+
+    "gitlab-beta.engr.illinois.edu/sp-box/boxsync/filemonitor"
 )
 
 func TestFileWatchWriteFile(t *testing.T) {
+    fmt.Printf("Testing a simple file watch:\n")
+
+    os.Mkdir("testing_tmp", 0777)
+    defer os.RemoveAll("testing_tmp/")
+
+    returnChannel := make(chan string)
+    fileWatcher := filemonitor.NewWatcher(func (f *filemonitor.FileWatchEvent) { returnChannel <- f.FilePath})
+    defer fileWatcher.Close()
+
+    fileWatcher.AddAll("testing_tmp")
+    writeByteToFile("testing_tmp/test")
+
+    file := <-returnChannel
+    if strings.Compare(file, "testing_tmp/test") != 0 {
+        t.Fail()
+    }
 }
 
 func TestFileWatchRemoveFile(t *testing.T) {
@@ -28,12 +46,18 @@ func TestDirectoryWatchCreateDirectory(t * testing.T) {
 }
 
 func TestDirectoryWatchRandom(t * testing.T) {
-    os.Mkdir("tmp", 0777)
-    events := buildRandomDirectorySequence(100, "tmp")
+    fmt.Printf("Testing a random series of ops:\n")
+    os.Mkdir("testing_tmp", 0777)
+    fileWatcher := filemonitor.NewWatcher(func (f *filemonitor.FileWatchEvent) { fmt.Printf("%s\n", f.FilePath)})
+    defer fileWatcher.Close()
+    fileWatcher.AddAll("testing_tmp")
+    events := buildRandomDirectorySequence(100, "testing_tmp")
     err := doEventSequence(events)
     if err != nil {
         log.Fatal(err)
     }
+
+    os.RemoveAll("testing_tmp/")
 }
 
 type DirectoryOperation struct {
@@ -58,12 +82,23 @@ const (
 
 type EventType int
 const (
-	EvTypeCreate EventType = iota
-	EvTypeWrite
-	EvTypeRemove
-	EvTypeRename
-	EvTypeChmod
+    EvTypeCreate EventType = iota
+    EvTypeWrite
+    EvTypeRemove
+    EvTypeRename
+    EvTypeChmod
 )
+
+func writeByteToFile (file string) error {
+    fp, err := os.OpenFile(file, os.O_WRONLY | os.O_CREATE, 0666)
+    if err != nil {
+        return err
+    }
+    b := []byte{1}
+    _, err = fp.Write(b)
+    return err
+}
+
 
 func doEventSequence (ops []DirectoryOperation) error {
     for _, op := range ops {
@@ -74,16 +109,10 @@ func doEventSequence (ops []DirectoryOperation) error {
             case FSTypeFile:
                 _, err = os.Create(op.filename)
             case FSTypeDir:
-                fmt.Printf("%s\n", op.filename)
                 err = os.Mkdir(op.filename, 0777)
             }
         case EvTypeWrite:
-            fp, err := os.OpenFile(op.filename, os.O_WRONLY, 0666)
-            if err != nil {
-                return err
-            }
-            b := []byte{1}
-            _, err = fp.Write(b)
+            err = writeByteToFile(op.filename)
         case EvTypeRemove:
             switch op.fsType {
             case FSTypeFile:
@@ -132,7 +161,6 @@ func walkTree (root *DirectoryTree, numSteps int) (string, FileSystemType) {
 }
 
 func dirOp (root *DirectoryTree, dest string, op EventType, fsType FileSystemType, newName string) {
-    fmt.Printf("dest: %s\n", dest)
     steps:= strings.Split(dest, "/")
     var adder int = 0
     switch op {
@@ -162,18 +190,15 @@ func dirOp (root *DirectoryTree, dest string, op EventType, fsType FileSystemTyp
 
     switch op {
     case EvTypeCreate :
-        fmt.Printf("Create: %s\n", dest)
-            if fsType == FSTypeFile {
-                root.files[steps[0]] = true
-            } else if fsType == FSTypeDir {
-                root.dirs[steps[0]] = &DirectoryTree{steps[0], make(map[string]*DirectoryTree), make(map[string]bool), 0}
-            }
+        if fsType == FSTypeFile {
+            root.files[steps[0]] = true
+        } else if fsType == FSTypeDir {
+            root.dirs[steps[0]] = &DirectoryTree{steps[0], make(map[string]*DirectoryTree), make(map[string]bool), 0}
+        }
 
     case EvTypeWrite :
-        fmt.Printf("Write to: %s\n", dest)
 
     case EvTypeRemove :
-        fmt.Printf("Remove: %s\n", dest)
 
         if fsType == FSTypeFile {
             delete(root.files, steps[0])
@@ -182,7 +207,6 @@ func dirOp (root *DirectoryTree, dest string, op EventType, fsType FileSystemTyp
         }
 
     case EvTypeRename :
-        fmt.Printf("Rename %s to %s\n", dest, newName)
         if fsType == FSTypeFile {
             delete(root.files, steps[0])
             root.files[newName] = true
@@ -254,10 +278,17 @@ func buildRandomDirectorySequence(numOps int, rootDir string) []DirectoryOperati
             if fileType == FSTypeFile {
                 name := "file" + strconv.Itoa(nameCounter)
                 dirOp(root, location, EvTypeRename, fileType, name)
+                steps := strings.Split(location, "/")
+                steps[len(steps)-1] = name
+                name = strings.Join(steps, "/")
                 events = append(events, DirectoryOperation{choice, fileType, location, name})
             } else if fileType == FSTypeDir {
                 name := "dir" + strconv.Itoa(nameCounter)
                 dirOp(root, location, EvTypeRename, fileType, name)
+                steps := strings.Split(location, "/")
+                steps[len(steps)-2] = name
+                name = strings.Join(steps, "/")
+
                 events = append(events, DirectoryOperation{choice, fileType, location, name})
             }
             nameCounter++
