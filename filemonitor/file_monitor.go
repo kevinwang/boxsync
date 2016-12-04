@@ -11,6 +11,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+//set it for 1 now
+const (
+	maxEventCount = 1
+)
+
 type onFileEventCallback func(*FileWatchEvent)
 
 type FileWatcherState int
@@ -30,17 +35,22 @@ const (
 	EvTypeChmod
 )
 
+type FileWatchEvent struct {
+	FilePath string
+	Type     EventType
+}
+
 type FileWatcher struct {
+	//public
+	FileEventC    chan FileWatchEvent
+	CommonSignalC chan os.Signal
+
+	//private
 	watcher         *fsnotify.Watcher
 	triggerInstsMap map[string]*TriggerInst
 	mutexLock       sync.Mutex
 	callback        onFileEventCallback
 	state           FileWatcherState
-}
-
-type FileWatchEvent struct {
-	FilePath string
-	Type     EventType
 }
 
 //--------------------------------------
@@ -60,10 +70,17 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 		return nil
 	}
 
+	//public members
+	fileWatcher.FileEventC = make(chan FileWatchEvent, maxEventCount+1)
+	fileWatcher.CommonSignalC = make(chan os.Signal, 1)
+	signal.Notify(fileWatcher.CommonSignalC, os.Interrupt, os.Kill)
+
+	//private members
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 	fileWatcher.callback = callback
-	//start a thread to watch
 	fileWatcher.state = StateWatching
+
+	//start a thread to watch
 	go fileWatcher.startRunning()
 
 	return fileWatcher
@@ -141,17 +158,6 @@ func (fileWatcher *FileWatcher) Remove(filePath string) {
 	}
 }
 
-func (fileWatcher *FileWatcher) WaitForKill() {
-	onSignalKill := make(chan os.Signal, 1)
-	signal.Notify(onSignalKill, os.Interrupt, os.Kill)
-	<-onSignalKill
-	fmt.Fprintln(os.Stderr, "\nKill signal triggered, quit...")
-
-	if fileWatcher.state == StateWatching {
-		fileWatcher.Close()
-	}
-}
-
 func (fileWatcher *FileWatcher) Close() {
 	err := fileWatcher.watcher.Close()
 	if err != nil {
@@ -214,11 +220,11 @@ func (fileWatcher *FileWatcher) triggerEvent(fileEvent *fsnotify.Event) {
 		triggerInst = &TriggerInst{filePath: fileEvent.Name, fileName: filepath.Base(fileEvent.Name), isBusy: false}
 		fileWatcher.triggerInstsMap[fileEvent.Name] = triggerInst
 	}
-	//start a thread to handle call back function.
-	go fileWatcher.handleCallback(triggerInst, fileEvent)
+	//start a thread to handle file function.
+	go fileWatcher.handleFileEvent(triggerInst, fileEvent)
 }
 
-func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
+func (fileWatcher *FileWatcher) handleFileEvent(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
 	//cannot run this at this point, do nothing.
 	if !triggerInst.canrun() {
 		return
@@ -257,5 +263,18 @@ func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEve
 		return
 	}
 
+	/*
+		We are passing by pointers, but the caller might change the event values
+		Therefore, create different FileWatchEvent for each exposured member
+	*/
+
+	//handle callback function
 	fileWatcher.callback(&FileWatchEvent{FilePath: fileEvent.Name, Type: eventType})
+
+	//push to channel
+	if len(fileWatcher.FileEventC) == maxEventCount {
+		//discard oldest element in the channel
+		<-fileWatcher.FileEventC
+	}
+	fileWatcher.FileEventC <- FileWatchEvent{FilePath: fileEvent.Name, Type: eventType}
 }
