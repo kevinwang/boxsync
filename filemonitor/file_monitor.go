@@ -49,6 +49,7 @@ type FileWatcher struct {
 	mutexLock       sync.Mutex
 	callback        onFileEventCallback
 	state           FileWatcherState
+	exclude         *Exclude
 }
 
 //--------------------------------------
@@ -75,11 +76,44 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 	fileWatcher.callback = callback
 	fileWatcher.state = StateWatching
+	fileWatcher.exclude = &Exclude{}
 
 	//start a thread to watch
 	go fileWatcher.startRunning()
 
 	return fileWatcher
+}
+
+func (fileWatcher *FileWatcher) AddExcludePatterns(patternsToAdd []string) {
+	for _, toAdd := range patternsToAdd {
+		toAdd = filepath.Clean(toAdd)
+		fileWatcher.exclude.Patterns[toAdd] = true
+	}
+}
+
+func (fileWatcher *FileWatcher) AddExcludeFiles(filesToAdd []string) {
+	for _, toAdd := range filesToAdd {
+		toAdd = filepath.Clean(toAdd)
+		fileWatcher.exclude.Files[toAdd] = true
+	}
+}
+
+func (fileWatcher *FileWatcher) RemoveExcludePatterns(patternsToRemove []string) {
+	for _, toRemove := range patternsToRemove {
+		toRemove = filepath.Clean(toRemove)
+		if _, ok := fileWatcher.exclude.Patterns[toRemove]; ok {
+			delete(fileWatcher.exclude.Patterns, toRemove)
+		}
+	}
+}
+
+func (fileWatcher *FileWatcher) RemoveExcludeFiles(filesToRemove []string) {
+	for _, toRemove := range filesToRemove {
+		toRemove = filepath.Clean(toRemove)
+		if _, ok := fileWatcher.exclude.Files[toRemove]; ok {
+			delete(fileWatcher.exclude.Files, toRemove)
+		}
+	}
 }
 
 func (fileWatcher *FileWatcher) AddAll(filePath string) {
@@ -89,7 +123,7 @@ func (fileWatcher *FileWatcher) AddAll(filePath string) {
 		return
 	}
 
-	dirs, err := fileWatcher.getSubFolders(filePath)
+	dirs, err := getSubFolders(filePath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "directory travering err:", err)
 		return
@@ -125,7 +159,7 @@ func (fileWatcher *FileWatcher) RemoveAll(filePath string) {
 		return
 	}
 
-	dirs, err := fileWatcher.getSubFolders(filePath)
+	dirs, err := getSubFolders(filePath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "directory traversing err:", err)
 		return
@@ -167,24 +201,6 @@ func (fileWatcher *FileWatcher) Close() {
 //Private methods start here
 //------------------------------------------
 
-func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, err error) {
-	err = filepath.Walk(filePath, func(newPath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			return nil
-		}
-
-		dirs = append(dirs, newPath)
-		return nil
-
-	})
-
-	return dirs, err
-}
-
 func (fileWatcher *FileWatcher) startRunning() {
 	for {
 		select {
@@ -197,7 +213,11 @@ func (fileWatcher *FileWatcher) startRunning() {
 				}
 				return
 			}
-			fileWatcher.triggerEvent(&fileEvent)
+
+			//trigger an event only if the file is not excluded
+			if !fileWatcher.exclude.IsMatch(fileEvent.Name) {
+				fileWatcher.triggerEvent(&fileEvent)
+			}
 		case errorEvent := <-fileWatcher.watcher.Errors:
 			fmt.Fprintln(os.Stderr, errorEvent.Error())
 		}
