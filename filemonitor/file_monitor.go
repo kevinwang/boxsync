@@ -76,7 +76,7 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 	fileWatcher.callback = callback
 	fileWatcher.state = StateWatching
-	fileWatcher.exclude = &Exclude{}
+	fileWatcher.exclude = &Exclude{Patterns: make(map[string]bool), Files: make(map[string]bool)}
 
 	//start a thread to watch
 	go fileWatcher.startRunning()

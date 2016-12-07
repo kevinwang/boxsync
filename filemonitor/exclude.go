@@ -16,10 +16,10 @@ func (exclude *Exclude) IsMatch(filePath string) bool {
 }
 
 func (exclude *Exclude) MatchPattern(filePath string) bool {
-	filePath = filepath.Clean(filePath)
+	baseName := filepath.Base(filePath)
 
 	for pattern, _ := range exclude.Patterns {
-		match, _ := filepath.Match(pattern, filePath)
+		match, _ := filepath.Match(pattern, baseName)
 		if match {
 			return true
 		}

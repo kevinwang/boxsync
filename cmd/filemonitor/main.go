@@ -41,9 +41,9 @@ func main() {
 
 	watcher.AddAll(*pathPtr)
 
-	toExcludePatterns := []string{"**/*.ppp", "**/*.ttt"}
+	toExcludePatterns := []string{"*.ppp", "*.ttt"}
 	toExcludeFiles := []string{"/home/ani91/Desktop/tmpDir/eee.eee", "/home/ani91/Desktop/tmpDir/kkk.kkk"}
-	toExcludeFolders := []string{"/home/ani91/Desktop/tmpDir/tmpDir/subTmpdir", "home/ani91/Desktop/tmpDir/excludeDir"}
+	toExcludeFolders := []string{"/home/ani91/Desktop/tmpDir/tmpDir/subTmpdir", "/home/ani91/Desktop/tmpDir/excludeDir"}
 	watcher.AddExcludePatterns(toExcludePatterns...)
 	watcher.AddExcludeFiles(toExcludeFiles...)
 	watcher.AddExcludeFiles(toExcludeFolders...)
