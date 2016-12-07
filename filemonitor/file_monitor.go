@@ -84,21 +84,21 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	return fileWatcher
 }
 
-func (fileWatcher *FileWatcher) AddExcludePatterns(patternsToAdd []string) {
+func (fileWatcher *FileWatcher) AddExcludePatterns(patternsToAdd ...string) {
 	for _, toAdd := range patternsToAdd {
 		toAdd = filepath.Clean(toAdd)
 		fileWatcher.exclude.Patterns[toAdd] = true
 	}
 }
 
-func (fileWatcher *FileWatcher) AddExcludeFiles(filesToAdd []string) {
+func (fileWatcher *FileWatcher) AddExcludeFiles(filesToAdd ...string) {
 	for _, toAdd := range filesToAdd {
 		toAdd = filepath.Clean(toAdd)
 		fileWatcher.exclude.Files[toAdd] = true
 	}
 }
 
-func (fileWatcher *FileWatcher) RemoveExcludePatterns(patternsToRemove []string) {
+func (fileWatcher *FileWatcher) RemoveExcludePatterns(patternsToRemove ...string) {
 	for _, toRemove := range patternsToRemove {
 		toRemove = filepath.Clean(toRemove)
 		if _, ok := fileWatcher.exclude.Patterns[toRemove]; ok {
@@ -107,7 +107,7 @@ func (fileWatcher *FileWatcher) RemoveExcludePatterns(patternsToRemove []string)
 	}
 }
 
-func (fileWatcher *FileWatcher) RemoveExcludeFiles(filesToRemove []string) {
+func (fileWatcher *FileWatcher) RemoveExcludeFiles(filesToRemove ...string) {
 	for _, toRemove := range filesToRemove {
 		toRemove = filepath.Clean(toRemove)
 		if _, ok := fileWatcher.exclude.Files[toRemove]; ok {
