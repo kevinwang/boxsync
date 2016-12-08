@@ -49,46 +49,21 @@ func TestDirectoryWatchCreateDirectory(t * testing.T) {
 func TestDirectoryWatchRandom(t * testing.T) {
     fmt.Printf("Testing a random series of ops:\n")
 
-    events := buildRandomDirectorySequence(100, "testing_tmp")
-
     os.Mkdir("testing_tmp", 0777)
     defer os.RemoveAll("testing_tmp/")
 
-    var i int = 0
     returnChannel := make(chan string)
     fileWatcher := filemonitor.NewWatcher(
-        func (f *filemonitor.FileWatchEvent) {
-            if i < len(events) {
-                if strings.Compare(events[i].filename, f.FilePath) == 0 {
-                    returnChannel <- ""
-                } else {
-                    returnChannel <- events[i].filename
-                    close(returnChannel)
-                }
-                i++
-                if i == len(events) {
-                    returnChannel <- ""
-                    close(returnChannel)
-                }
-            }
-        })
+        func (f *filemonitor.FileWatchEvent) {returnChannel <- f.FilePath})
     defer fileWatcher.Close()
     fileWatcher.AddAll("testing_tmp")
 
+    events := buildRandomDirectorySequence(100, "testing_tmp")
     err := doEventSequence(events)
+
+    file := <-returnChannel
     if err != nil {
         log.Fatal(err)
-    }
-
-    var ok bool = true
-    var file string
-    for ok {
-        file, ok = <-returnChannel
-    }
-
-    if file != "" {
-        fmt.Printf("Failed on file %s\n", file)
-        t.Fail()
     }
 }
 
