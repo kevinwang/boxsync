@@ -21,7 +21,8 @@ func TestFileWatchWriteFile(t *testing.T) {
     defer os.RemoveAll("testing_tmp/")
 
     returnChannel := make(chan string)
-    fileWatcher := filemonitor.NewWatcher(func (f *filemonitor.FileWatchEvent) { returnChannel <- f.FilePath})
+    fileWatcher := filemonitor.NewWatcher(
+        func (f *filemonitor.FileWatchEvent) {returnChannel <- f.FilePath})
     defer fileWatcher.Close()
 
     fileWatcher.AddAll("testing_tmp")
@@ -47,17 +48,23 @@ func TestDirectoryWatchCreateDirectory(t * testing.T) {
 
 func TestDirectoryWatchRandom(t * testing.T) {
     fmt.Printf("Testing a random series of ops:\n")
+
     os.Mkdir("testing_tmp", 0777)
-    fileWatcher := filemonitor.NewWatcher(func (f *filemonitor.FileWatchEvent) { fmt.Printf("%s\n", f.FilePath)})
+    defer os.RemoveAll("testing_tmp/")
+
+    returnChannel := make(chan string)
+    fileWatcher := filemonitor.NewWatcher(
+        func (f *filemonitor.FileWatchEvent) {returnChannel <- f.FilePath})
     defer fileWatcher.Close()
     fileWatcher.AddAll("testing_tmp")
+
     events := buildRandomDirectorySequence(100, "testing_tmp")
     err := doEventSequence(events)
+
+    file := <-returnChannel
     if err != nil {
         log.Fatal(err)
     }
-
-    os.RemoveAll("testing_tmp/")
 }
 
 type DirectoryOperation struct {
