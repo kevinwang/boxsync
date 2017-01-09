@@ -1,6 +1,7 @@
 package main
 
 import (
+<<<<<<< HEAD
     "flag"
     "fmt"
     "os"
@@ -33,18 +34,21 @@ func main() {
     pathPtr := flag.String("path", "./", "file path to watch")
     flag.Parse()
 
-
     killSignalC := make(chan os.Signal, 1)
     signal.Notify(killSignalC, os.Interrupt, os.Kill)
+
     //simple main to test if filemonitor package works....
     watcher := filemonitor.NewWatcher(printFileEvent)
+
     watcher.AddAll(*pathPtr)
+
     toExcludePatterns := []string{"*.ppp", "*.ttt"}
     toExcludeFiles := []string{"/home/ani91/Desktop/tmpDir/eee.eee", "/home/ani91/Desktop/tmpDir/kkk.kkk"}
     toExcludeFolders := []string{"/home/ani91/Desktop/tmpDir/tmpDir/subTmpdir", "/home/ani91/Desktop/tmpDir/excludeDir"}
     watcher.AddExcludePatterns(toExcludePatterns...)
     watcher.AddExcludeFiles(toExcludeFiles...)
     watcher.AddExcludeFiles(toExcludeFolders...)
+
     for {
         select {
         case fileEvent := <-watcher.FileEventC:
