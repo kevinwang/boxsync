@@ -4,7 +4,6 @@ import (
     "testing"
     "time"
     "math/rand"
-    //"path/filepath"
     "os"
     "strconv"
     "strings"
@@ -49,7 +48,7 @@ func TestDirectoryWatchCreateDirectory(t * testing.T) {
 func TestDirectoryWatchRandom(t * testing.T) {
     fmt.Printf("Testing a random series of ops:\n")
 
-    events := buildRandomDirectorySequence(100, "testing_tmp")
+    events := buildRandomDirectorySequence(1000, "testing_tmp")
 
     os.Mkdir("testing_tmp", 0777)
     defer os.RemoveAll("testing_tmp/")
