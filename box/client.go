@@ -1,8 +1,14 @@
 package box
 
 import (
+	"errors"
 	"io/ioutil"
-	"net/http"
+
+	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/httpclient"
+)
+
+const (
+	defaultApiBaseUrl = "https://api.box.com/2.0"
 )
 
 type Client interface {
@@ -12,19 +18,23 @@ type Client interface {
 }
 
 type client struct {
-	client *http.Client
+	client     httpclient.Client
+	apiBaseUrl string
 }
 
-func NewClient(httpClient *http.Client) Client {
+func NewClient(httpClient httpclient.Client) Client {
 	return &client{
-		client: httpClient,
+		client:     httpClient,
+		apiBaseUrl: defaultApiBaseUrl,
 	}
 }
 
-func (c *client) Get(endpoint string) ([]byte, error) {
-	r, err := c.client.Get("https://api.box.com/2.0" + endpoint)
+func (c *client) Get(endpointPath string) ([]byte, error) {
+	r, err := c.client.Get(c.endpointUrl(endpointPath))
 	if err != nil {
 		return nil, err
+	} else if r.StatusCode >= 400 {
+		return nil, errors.New(r.Status)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -33,4 +43,8 @@ func (c *client) Get(endpoint string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (c *client) endpointUrl(path string) string {
+	return c.apiBaseUrl + path
 }
