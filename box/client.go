@@ -3,8 +3,7 @@ package box
 import (
 	"errors"
 	"io/ioutil"
-
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/httpclient"
+	"net/http"
 )
 
 const (
@@ -18,11 +17,11 @@ type Client interface {
 }
 
 type client struct {
-	client     httpclient.Client
+	client     *http.Client
 	apiBaseUrl string
 }
 
-func NewClient(httpClient httpclient.Client) Client {
+func NewClient(httpClient *http.Client) Client {
 	return &client{
 		client:     httpClient,
 		apiBaseUrl: defaultApiBaseUrl,
