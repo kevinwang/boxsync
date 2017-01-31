@@ -207,7 +207,7 @@ func (fileWatcher *FileWatcher) startRunning() {
 		case fileEvent, ok := <-fileWatcher.watcher.Events:
 			if !ok {
 				if fileWatcher.state == StateClosed {
-					fmt.Fprintln(os.Stdout, "watcher Closed")
+					fmt.Fprintln(os.Stderr, "watcher Closed")
 				} else {
 					fmt.Fprintln(os.Stderr, "unknown errors")
 				}
@@ -218,8 +218,14 @@ func (fileWatcher *FileWatcher) startRunning() {
 			if !fileWatcher.exclude.IsMatch(fileEvent.Name) {
 				fileWatcher.triggerEvent(&fileEvent)
 			}
-		case errorEvent := <-fileWatcher.watcher.Errors:
-			fmt.Fprintln(os.Stderr, errorEvent.Error())
+		case errorEvent, ok := <-fileWatcher.watcher.Errors:
+			if !ok {
+				if fileWatcher.state == StateClosed {
+					fmt.Fprintln(os.Stderr, "watcher Closed")
+				} else {
+					fmt.Fprintln(os.Stderr, errorEvent.Error())
+				}
+			}
 		}
 	}
 }
