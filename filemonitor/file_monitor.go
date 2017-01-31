@@ -19,11 +19,6 @@ type onFileEventCallback func(*FileWatchEvent)
 
 type FileWatcherState int
 
-const (
-	StateWatching = iota
-	StateClosed
-)
-
 type EventType int
 
 const (
@@ -48,7 +43,7 @@ type FileWatcher struct {
 	triggerInstsMap map[string]*TriggerInst
 	mutexLock       sync.Mutex
 	callback        onFileEventCallback
-	state           FileWatcherState
+	quitC           chan int
 	exclude         *Exclude
 }
 
@@ -75,7 +70,7 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	//private members
 	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
 	fileWatcher.callback = callback
-	fileWatcher.state = StateWatching
+	fileWatcher.quitC = make(chan int)
 	fileWatcher.exclude = &Exclude{Patterns: make(map[string]bool), Files: make(map[string]bool)}
 
 	//start a thread to watch
@@ -189,11 +184,11 @@ func (fileWatcher *FileWatcher) Remove(filePath string) {
 }
 
 func (fileWatcher *FileWatcher) Close() {
+	fileWatcher.quitC <- 0
 	err := fileWatcher.watcher.Close()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "watcher Close error:", err)
 	}
-	fileWatcher.state = StateClosed
 	fileWatcher.watcher = nil
 }
 
@@ -204,13 +199,12 @@ func (fileWatcher *FileWatcher) Close() {
 func (fileWatcher *FileWatcher) startRunning() {
 	for {
 		select {
+		case <-fileWatcher.quitC:
+			fmt.Fprintln(os.Stdout, "watcher closed")
+			return
 		case fileEvent, ok := <-fileWatcher.watcher.Events:
 			if !ok {
-				if fileWatcher.state == StateClosed {
-					fmt.Fprintln(os.Stderr, "watcher Closed")
-				} else {
-					fmt.Fprintln(os.Stderr, "unknown errors")
-				}
+				fmt.Fprintln(os.Stderr, "unknown errors")
 				return
 			}
 
@@ -220,11 +214,7 @@ func (fileWatcher *FileWatcher) startRunning() {
 			}
 		case errorEvent, ok := <-fileWatcher.watcher.Errors:
 			if !ok {
-				if fileWatcher.state == StateClosed {
-					fmt.Fprintln(os.Stderr, "watcher Closed")
-				} else {
-					fmt.Fprintln(os.Stderr, errorEvent.Error())
-				}
+				fmt.Fprintln(os.Stderr, errorEvent.Error())
 			}
 		}
 	}
