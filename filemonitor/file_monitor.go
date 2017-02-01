@@ -209,9 +209,9 @@ func (fileWatcher *FileWatcher) startRunning() {
 			}
 
 			//trigger an event only if the file is not excluded
-			if !fileWatcher.exclude.IsMatch(fileEvent.Name) {
-				fileWatcher.triggerEvent(&fileEvent)
-			}
+			//if !fileWatcher.exclude.IsMatch(fileEvent.Name) {
+			fileWatcher.triggerEvent(&fileEvent)
+			//}
 		case errorEvent, ok := <-fileWatcher.watcher.Errors:
 			if !ok {
 				fmt.Fprintln(os.Stderr, errorEvent.Error())

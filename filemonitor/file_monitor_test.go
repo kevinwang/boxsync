@@ -43,24 +43,54 @@ func TestDirectoryWatchCreateFile(t *testing.T) {
 }
 
 func TestDirectoryWatchCreateDirectory(t *testing.T) {
+	fmt.Printf("Testing a simple directory watch:\n")
+
+	os.Mkdir("testing_tmp", 0777)
+	defer os.RemoveAll("testing_tmp/")
+
+	returnChannel := make(chan string)
+	fileWatcher := filemonitor.NewWatcher(
+		func(f *filemonitor.FileWatchEvent) {
+			fmt.Printf("%s\n", f.FilePath)
+			returnChannel <- f.FilePath
+		})
+	defer fileWatcher.Close()
+
+	fileWatcher.AddAll("testing_tmp")
+	os.Mkdir("testing_tmp/level2", 0777)
+
+	dir := <-returnChannel
+	if strings.Compare(dir, "testing_tmp/level2") != 0 {
+		t.Fail()
+	}
+
+	writeByteToFile("testing_tmp/level2/test")
+	file := <-returnChannel
+	if strings.Compare(file, "testing_tmp/level2/test") != 0 {
+		t.Fail()
+	}
 }
 
 func TestDirectoryWatchRandom(t *testing.T) {
 	fmt.Printf("Testing a random series of ops:\n")
 
-	events := buildRandomDirectorySequence(10000, "testing_tmp")
+	events := buildRandomDirectorySequence(10, "testing_tmp")
+	ready := make(chan bool)
+	defer close(ready)
 
 	os.Mkdir("testing_tmp", 0777)
 	defer os.RemoveAll("testing_tmp/")
 
 	fileWatcher := filemonitor.NewWatcher(
 		func(f *filemonitor.FileWatchEvent) {
-			fmt.Printf("%s\n", f.FilePath)
+			t.Logf("%s\n", f.FilePath)
+			ready <- true
 		})
+
 	defer fileWatcher.Close()
 	fileWatcher.AddAll("testing_tmp")
 
-	err := doEventSequence(events)
+	err := doEventSequence(events, ready)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,7 +137,7 @@ func writeByteToFile(file string) error {
 	return err
 }
 
-func doEventSequence(ops []DirectoryOperation) error {
+func doEventSequence(ops []DirectoryOperation, ready chan bool) error {
 	for _, op := range ops {
 		fmt.Printf("event type:%d, filetype:%d, filename:%s, newname:%s \n", op.event, op.fsType, op.filename, op.newName)
 		var err error
@@ -133,6 +163,10 @@ func doEventSequence(ops []DirectoryOperation) error {
 		}
 		if err != nil {
 			return err
+		}
+		_, ok := <-ready
+		if !ok {
+			return nil
 		}
 	}
 	return nil

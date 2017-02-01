@@ -17,7 +17,6 @@ func getSubFolders(filePath string) (dirs []string, err error) {
 
 		dirs = append(dirs, newPath)
 		return nil
-
 	})
 
 	return dirs, err
