@@ -58,6 +58,15 @@ import (
 
 Imports in each group should be alphabetized; `gofmt` will do this automatically.
 
+## Commit Message Format
+You can put anything you want for commit message. But, in general, conform to a simple "subject-body" format, and use key action word as the first word for "subject". For example:
+
+fixed/refactored/updated/removed/changed/released/merged/...  subsytem x for blab
+
+subsystem x has a problem ..., and I did ... to fix...
+
+more details...
+
 ## Editors
 ### Vim plugins
 I found following plugins can come handy for vim.

@@ -3,7 +3,6 @@ package filemonitor
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sync"
 	"time"
@@ -11,7 +10,14 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+//set it for 1 now
+const (
+	maxEventCount = 1
+)
+
 type onFileEventCallback func(*FileWatchEvent)
+
+type FileWatcherState int
 
 type EventType int
 
@@ -23,19 +29,27 @@ const (
 	EvTypeChmod
 )
 
-type FileWatcher struct {
-	watcher         *fsnotify.Watcher
-	triggerInstsMap map[string]*TriggerInst
-	mutexLock       sync.Mutex
-	callback        onFileEventCallback
-}
-
 type FileWatchEvent struct {
 	FilePath string
 	Type     EventType
 }
 
+type FileWatcher struct {
+	//public
+	FileEventC chan FileWatchEvent
+
+	//private
+	watcher         *fsnotify.Watcher
+	triggerInstsMap map[string]*TriggerInst
+	mutexLock       sync.Mutex
+	callback        onFileEventCallback
+	quitC           chan int
+	exclude         *Exclude
+}
+
+//--------------------------------------
 //Public methods start here
+//--------------------------------------
 
 func NewWatcher(callback onFileEventCallback) *FileWatcher {
 	fileWatcher := new(FileWatcher)
@@ -45,22 +59,68 @@ func NewWatcher(callback onFileEventCallback) *FileWatcher {
 
 	//fsnotify fails...
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "calling fsnotify.NewWatcher fails:", err)
 		fileWatcher = nil
-	} else {
-		fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
-		fileWatcher.callback = callback
-		//start a thread to watch
-		go fileWatcher.startRunning()
+		return nil
 	}
+
+	//public members
+	fileWatcher.FileEventC = make(chan FileWatchEvent, maxEventCount+1)
+
+	//private members
+	fileWatcher.triggerInstsMap = map[string]*TriggerInst{}
+	fileWatcher.callback = callback
+	fileWatcher.quitC = make(chan int)
+	fileWatcher.exclude = &Exclude{Patterns: make(map[string]bool), Files: make(map[string]bool)}
+
+	//start a thread to watch
+	go fileWatcher.startRunning()
 
 	return fileWatcher
 }
 
+func (fileWatcher *FileWatcher) AddExcludePatterns(patternsToAdd ...string) {
+	for _, toAdd := range patternsToAdd {
+		toAdd = filepath.Clean(toAdd)
+		fileWatcher.exclude.Patterns[toAdd] = true
+	}
+}
+
+func (fileWatcher *FileWatcher) AddExcludeFiles(filesToAdd ...string) {
+	for _, toAdd := range filesToAdd {
+		toAdd = filepath.Clean(toAdd)
+		fileWatcher.exclude.Files[toAdd] = true
+	}
+}
+
+func (fileWatcher *FileWatcher) RemoveExcludePatterns(patternsToRemove ...string) {
+	for _, toRemove := range patternsToRemove {
+		toRemove = filepath.Clean(toRemove)
+		if _, ok := fileWatcher.exclude.Patterns[toRemove]; ok {
+			delete(fileWatcher.exclude.Patterns, toRemove)
+		}
+	}
+}
+
+func (fileWatcher *FileWatcher) RemoveExcludeFiles(filesToRemove ...string) {
+	for _, toRemove := range filesToRemove {
+		toRemove = filepath.Clean(toRemove)
+		if _, ok := fileWatcher.exclude.Files[toRemove]; ok {
+			delete(fileWatcher.exclude.Files, toRemove)
+		}
+	}
+}
+
 func (fileWatcher *FileWatcher) AddAll(filePath string) {
-	dirs, err := fileWatcher.getSubFolders(filePath)
+	//Has not been initialized, do nothing now.
+	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
+		return
+	}
+
+	dirs, err := getSubFolders(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "directory transvering err", err)
+		fmt.Fprintln(os.Stderr, "directory travering err:", err)
 		return
 	}
 
@@ -70,8 +130,9 @@ func (fileWatcher *FileWatcher) AddAll(filePath string) {
 }
 
 func (fileWatcher *FileWatcher) Add(filePath string) {
-	//Has not been initlized, do nothing now.
+	//Has not been initialized, do nothing now.
 	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
 		return
 	}
 
@@ -82,64 +143,79 @@ func (fileWatcher *FileWatcher) Add(filePath string) {
 
 	err := fileWatcher.watcher.Add(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "tried to watch:", filePath, ", but err:", err)
+		fmt.Fprintln(os.Stderr, "tried to watch:", filePath, ", but err calling fsnotify add:", err)
+	}
+}
+
+func (fileWatcher *FileWatcher) RemoveAll(filePath string) {
+	//Has not been initialized, do nothing now.
+	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
+		return
+	}
+
+	dirs, err := getSubFolders(filePath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "directory traversing err:", err)
+		return
+	}
+
+	for _, dir := range dirs {
+		fileWatcher.Remove(dir)
 	}
 }
 
 func (fileWatcher *FileWatcher) Remove(filePath string) {
-	//Has not been initilized, do nothing now.
+	//Has not been initialized, do nothing now.
 	if fileWatcher.watcher == nil {
+		fmt.Fprintln(os.Stderr, "filewatcher is nil, return")
 		return
 	}
 
 	fileWatcher.mutexLock.Lock()
 	defer fileWatcher.mutexLock.Unlock()
 
+	filePath = filepath.Clean(filePath)
+
 	err := fileWatcher.watcher.Remove(filePath)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "tried to remove:", filePath, ", but err calling fsnotify remove:", err)
 	}
 }
 
-func (fileWatcher *FileWatcher) WaitForKill() {
-	onSignalKill := make(chan os.Signal, 1)
-	signal.Notify(onSignalKill, os.Interrupt, os.Kill)
-	<-onSignalKill
-	fmt.Fprintln(os.Stderr, "\nKill signal triggered, quit...")
-}
-
 func (fileWatcher *FileWatcher) Close() {
-	fileWatcher.watcher.Close()
+	fileWatcher.quitC <- 0
+	err := fileWatcher.watcher.Close()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "watcher Close error:", err)
+	}
 	fileWatcher.watcher = nil
 }
 
+//------------------------------------------
 //Private methods start here
-
-func (fileWatcher *FileWatcher) getSubFolders(filePath string) (dirs []string, err error) {
-	err = filepath.Walk(filePath, func(newPath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			return nil
-		}
-
-		dirs = append(dirs, newPath)
-		return nil
-
-	})
-
-	return dirs, err
-}
+//------------------------------------------
 
 func (fileWatcher *FileWatcher) startRunning() {
 	for {
 		select {
-		case fileEvent := <-fileWatcher.watcher.Events:
-			fileWatcher.triggerEvent(&fileEvent)
-		case errorEvent := <-fileWatcher.watcher.Errors:
-			fmt.Fprintln(os.Stderr, errorEvent.Error())
+		case <-fileWatcher.quitC:
+			fmt.Fprintln(os.Stdout, "watcher closed")
+			return
+		case fileEvent, ok := <-fileWatcher.watcher.Events:
+			if !ok {
+				fmt.Fprintln(os.Stderr, "unknown errors")
+				return
+			}
+
+			//trigger an event only if the file is not excluded
+			if !fileWatcher.exclude.IsMatch(fileEvent.Name) {
+				fileWatcher.triggerEvent(&fileEvent)
+			}
+		case errorEvent, ok := <-fileWatcher.watcher.Errors:
+			if !ok {
+				fmt.Fprintln(os.Stderr, errorEvent.Error())
+			}
 		}
 	}
 }
@@ -156,11 +232,11 @@ func (fileWatcher *FileWatcher) triggerEvent(fileEvent *fsnotify.Event) {
 		triggerInst = &TriggerInst{filePath: fileEvent.Name, fileName: filepath.Base(fileEvent.Name), isBusy: false}
 		fileWatcher.triggerInstsMap[fileEvent.Name] = triggerInst
 	}
-	//start a thread to handle call back function.
-	go fileWatcher.handleCallback(triggerInst, fileEvent)
+	//start a thread to handle file function.
+	go fileWatcher.handleFileEvent(triggerInst, fileEvent)
 }
 
-func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
+func (fileWatcher *FileWatcher) handleFileEvent(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
 	//cannot run this at this point, do nothing.
 	if !triggerInst.canrun() {
 		return
@@ -199,5 +275,18 @@ func (fileWatcher *FileWatcher) handleCallback(triggerInst *TriggerInst, fileEve
 		return
 	}
 
+	/*
+		We are passing by pointers, but the caller might change the event values
+		Therefore, create different FileWatchEvent for each exposured member
+	*/
+
+	//handle callback function
 	fileWatcher.callback(&FileWatchEvent{FilePath: fileEvent.Name, Type: eventType})
+
+	//push to channel
+	if len(fileWatcher.FileEventC) == maxEventCount {
+		//discard oldest element in the channel
+		<-fileWatcher.FileEventC
+	}
+	fileWatcher.FileEventC <- FileWatchEvent{FilePath: fileEvent.Name, Type: eventType}
 }

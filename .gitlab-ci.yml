@@ -1,0 +1,16 @@
+# Runners are configured to use the golang:1.6 Docker image, which means that
+# Go is already installed and GOPATH is set to /go.
+
+before_script:
+  - export REPO_PATH=$(pwd)
+  - mkdir -p $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box
+  - ln -s $REPO_PATH $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+  - cd $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+
+build:
+  stage: build
+  script: go build ./...
+
+test:
+  stage: build
+  script: go test -v ./...

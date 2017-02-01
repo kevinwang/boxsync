@@ -35,5 +35,4 @@ func (inst *TriggerInst) setLastUpdate() {
 	defer inst.mutexLock.Unlock()
 	inst.lastUpdateTime = time.Now()
 	inst.isBusy = false
-	return
 }
