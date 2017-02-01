@@ -22,7 +22,7 @@ type TriggerInst struct {
 func (inst *TriggerInst) canrun() bool {
 	inst.mutexLock.Lock()
 	defer inst.mutexLock.Unlock()
-	if inst.isBusy || time.Now().Sub(inst.lastUpdateTime) < minInterval {
+	if inst.isBusy {
 		return false
 	}
 

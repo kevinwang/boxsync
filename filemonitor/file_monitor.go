@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
+	//"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -221,32 +221,34 @@ func (fileWatcher *FileWatcher) startRunning() {
 }
 
 func (fileWatcher *FileWatcher) triggerEvent(fileEvent *fsnotify.Event) {
-	fileWatcher.mutexLock.Lock()
-	defer fileWatcher.mutexLock.Unlock()
+	//fileWatcher.mutexLock.Lock()
+	//defer fileWatcher.mutexLock.Unlock()
 
-	var triggerInst *TriggerInst
-	var ok bool
-	triggerInst, ok = fileWatcher.triggerInstsMap[fileEvent.Name]
-	//first time event firing
-	if !ok {
-		triggerInst = &TriggerInst{filePath: fileEvent.Name, fileName: filepath.Base(fileEvent.Name), isBusy: false}
-		fileWatcher.triggerInstsMap[fileEvent.Name] = triggerInst
-	}
+	/*
+		var triggerInst *TriggerInst
+		var ok bool
+		triggerInst, ok = fileWatcher.triggerInstsMap[fileEvent.Name]
+		//first time event firing
+		if !ok {
+			triggerInst = &TriggerInst{filePath: fileEvent.Name, fileName: filepath.Base(fileEvent.Name), isBusy: false}
+			fileWatcher.triggerInstsMap[fileEvent.Name] = triggerInst
+		}
+	*/
 	//start a thread to handle file function.
-	go fileWatcher.handleFileEvent(triggerInst, fileEvent)
+	fileWatcher.handleFileEvent(nil, fileEvent)
 }
 
 func (fileWatcher *FileWatcher) handleFileEvent(triggerInst *TriggerInst, fileEvent *fsnotify.Event) {
 	//cannot run this at this point, do nothing.
-	if !triggerInst.canrun() {
-		return
-	}
+	//if !triggerInst.canrun() {
+	//	return
+	//}
 
-	defer triggerInst.setLastUpdate()
+	//defer triggerInst.setLastUpdate()
 
 	//wait...
-	timeChannel := time.Tick(minInterval)
-	<-timeChannel
+	//timeChannel := time.Tick(minInterval)
+	//<-timeChannel
 
 	var eventType EventType
 
@@ -268,6 +270,7 @@ func (fileWatcher *FileWatcher) handleFileEvent(triggerInst *TriggerInst, fileEv
 		eventType = EvTypeRemove
 	} else if fileEvent.Op&fsnotify.Rename == fsnotify.Rename {
 		eventType = EvTypeRename
+		return
 	} else if fileEvent.Op&fsnotify.Chmod == fsnotify.Chmod {
 		eventType = EvTypeChmod
 	} else {

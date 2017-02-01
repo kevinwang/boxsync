@@ -1,10 +1,11 @@
 package filemonitor_test
 
 import (
-	"fmt"
+	//"fmt"
 	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,20 +15,29 @@ import (
 )
 
 func TestFileWatchWriteFile(t *testing.T) {
-	fmt.Printf("Testing a simple file watch:\n")
+	t.Logf("Testing a simple file watch:\n")
 
 	os.Mkdir("testing_tmp", 0777)
 	defer os.RemoveAll("testing_tmp/")
 
 	returnChannel := make(chan string)
 	fileWatcher := filemonitor.NewWatcher(
-		func(f *filemonitor.FileWatchEvent) { returnChannel <- f.FilePath })
+		func(f *filemonitor.FileWatchEvent) {
+			t.Logf("%s\n", f.FilePath)
+			returnChannel <- f.FilePath
+		})
 	defer fileWatcher.Close()
 
 	fileWatcher.AddAll("testing_tmp")
-	writeByteToFile("testing_tmp/test")
+	os.Create("testing_tmp/test")
 
 	file := <-returnChannel
+	if strings.Compare(file, "testing_tmp/test") != 0 {
+		t.Fail()
+	}
+
+	writeByteToFile("testing_tmp/test")
+	file = <-returnChannel
 	if strings.Compare(file, "testing_tmp/test") != 0 {
 		t.Fail()
 	}
@@ -37,13 +47,7 @@ func TestFileWatchRemoveFile(t *testing.T) {
 }
 
 func TestFileWatchRenameFile(t *testing.T) {
-}
-
-func TestDirectoryWatchCreateFile(t *testing.T) {
-}
-
-func TestDirectoryWatchCreateDirectory(t *testing.T) {
-	fmt.Printf("Testing a simple directory watch:\n")
+	t.Logf("Testing a simple file rename:\n")
 
 	os.Mkdir("testing_tmp", 0777)
 	defer os.RemoveAll("testing_tmp/")
@@ -51,7 +55,60 @@ func TestDirectoryWatchCreateDirectory(t *testing.T) {
 	returnChannel := make(chan string)
 	fileWatcher := filemonitor.NewWatcher(
 		func(f *filemonitor.FileWatchEvent) {
-			fmt.Printf("%s\n", f.FilePath)
+			t.Logf("%s\n", f.FilePath)
+			returnChannel <- f.FilePath
+		})
+	defer fileWatcher.Close()
+
+	fileWatcher.AddAll("testing_tmp")
+	os.Create("testing_tmp/test")
+
+	file := <-returnChannel
+	if strings.Compare(file, "testing_tmp/test") != 0 {
+		t.Fail()
+	}
+
+	os.Rename("testing_tmp/test", "testing_tmp/test2")
+	rename := <-returnChannel
+	if strings.Compare(rename, "testing_tmp/test2") != 0 {
+		t.Fail()
+	}
+
+	os.Mkdir("testing_tmp/test_dir", 0777)
+	dir := <-returnChannel
+	if strings.Compare(dir, "testing_tmp/test_dir") != 0 {
+		t.Fail()
+	}
+	os.Create("testing_tmp/test_dir/test")
+	file = <-returnChannel
+	if strings.Compare(file, "testing_tmp/test_dir/test") != 0 {
+		t.Fail()
+	}
+	os.Rename("testing_tmp/test_dir", "testing_tmp/dir_2")
+	dir_rename := <-returnChannel
+	if strings.Compare(dir_rename, "testing_tmp/dir_2") != 0 {
+		t.Fail()
+	}
+	os.Remove("testing_tmp/dir_2/test")
+	file = <-returnChannel
+	if strings.Compare(file, "testing_tmp/dir_2/test") != 0 {
+		t.Fail()
+	}
+}
+
+func TestDirectoryWatchCreateFile(t *testing.T) {
+}
+
+func TestDirectoryWatchCreateDirectory(t *testing.T) {
+	t.Logf("Testing a simple directory watch:\n")
+
+	os.Mkdir("testing_tmp", 0777)
+	defer os.RemoveAll("testing_tmp/")
+
+	returnChannel := make(chan string)
+	fileWatcher := filemonitor.NewWatcher(
+		func(f *filemonitor.FileWatchEvent) {
+			t.Logf("%s\n", f.FilePath)
 			returnChannel <- f.FilePath
 		})
 	defer fileWatcher.Close()
@@ -64,7 +121,7 @@ func TestDirectoryWatchCreateDirectory(t *testing.T) {
 		t.Fail()
 	}
 
-	writeByteToFile("testing_tmp/level2/test")
+	os.Create("testing_tmp/level2/test")
 	file := <-returnChannel
 	if strings.Compare(file, "testing_tmp/level2/test") != 0 {
 		t.Fail()
@@ -72,19 +129,42 @@ func TestDirectoryWatchCreateDirectory(t *testing.T) {
 }
 
 func TestDirectoryWatchRandom(t *testing.T) {
-	fmt.Printf("Testing a random series of ops:\n")
+	t.Logf("Testing a random series of ops:\n")
 
-	events := buildRandomDirectorySequence(10, "testing_tmp")
+	events := buildRandomDirectorySequence(4000, "testing_tmp")
 	ready := make(chan bool)
 	defer close(ready)
 
 	os.Mkdir("testing_tmp", 0777)
 	defer os.RemoveAll("testing_tmp/")
 
+	i := 0
 	fileWatcher := filemonitor.NewWatcher(
 		func(f *filemonitor.FileWatchEvent) {
+			switch etype := f.Type; etype {
+			case filemonitor.EvTypeCreate:
+				t.Logf("Create: ")
+			case filemonitor.EvTypeWrite:
+				t.Logf("Write: ")
+			case filemonitor.EvTypeRemove:
+				t.Logf("Remove: ")
+			case filemonitor.EvTypeRename:
+				t.Logf("Rename: ")
+			case filemonitor.EvTypeChmod:
+				t.Logf("Chmod: ")
+			}
 			t.Logf("%s\n", f.FilePath)
-			ready <- true
+			if events[i].event == EvTypeRename {
+				if strings.Compare(filepath.Base(events[i].newName), filepath.Base(f.FilePath)) == 0 {
+					ready <- true
+					i++
+				}
+			} else {
+				if strings.Compare(filepath.Base(events[i].filename), filepath.Base(f.FilePath)) == 0 {
+					ready <- true
+					i++
+				}
+			}
 		})
 
 	defer fileWatcher.Close()
@@ -128,18 +208,19 @@ const (
 )
 
 func writeByteToFile(file string) error {
-	fp, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0666)
+	fp, err := os.OpenFile(file, os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
-	b := []byte{1}
+	b := []byte{76, 79, 76}
 	_, err = fp.Write(b)
+	//t.Logf("wrote one byte to: %s\n", file)
 	return err
 }
 
 func doEventSequence(ops []DirectoryOperation, ready chan bool) error {
 	for _, op := range ops {
-		fmt.Printf("event type:%d, filetype:%d, filename:%s, newname:%s \n", op.event, op.fsType, op.filename, op.newName)
+		//t.Logf("event type:%d, filetype:%d, filename:%s, newname:%s \n", op.event, op.fsType, op.filename, op.newName)
 		var err error
 		switch op.event {
 		case EvTypeCreate:
@@ -154,7 +235,7 @@ func doEventSequence(ops []DirectoryOperation, ready chan bool) error {
 		case EvTypeRemove:
 			switch op.fsType {
 			case FSTypeFile:
-				err = os.Remove(op.filename)
+				err = os.RemoveAll(op.filename)
 			case FSTypeDir:
 				err = os.RemoveAll(op.filename)
 			}
