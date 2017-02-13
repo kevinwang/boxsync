@@ -14,6 +14,10 @@ type Client interface {
 	Get(endpoint string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
+	GetFolderEntity(folderId string) (*FolderEntity, error)
+	GetAllItems(folderId string) ([]Entity, error)
+	GetFolder(folderId string) (*Folder, error)
+	GetFile(fileID string) (*File, error)
 }
 
 type client struct {
