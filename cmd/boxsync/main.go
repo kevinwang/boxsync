@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth"
@@ -17,12 +16,19 @@ func main() {
 
 	client := box.NewClient(httpClient)
 	user, _ := client.GetCurrentUser()
-	fmt.Println(user)
+	fmt.Println(user.ID)
 
-	r, err := httpClient.Get("https://api.box.com/2.0/folders/0")
-	if err != nil {
-		log.Fatal(err)
-	}
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Println(string(body))
+	//r, err := httpClient.Get("https://api.box.com/2.0/folders/0")
+	/*
+		if err != nil {
+			log.Fatal(err)
+		}
+		body, _ := ioutil.ReadAll(r.Body)
+		fmt.Println(string(body))
+	*/
+	//fmt.Println(string("...heheh"))
+	r, _ := client.GetFolderEntity("0")
+	//r, _ := client.GetFile("10257272849")
+	fmt.Println(r.FolderId)
+
 }
