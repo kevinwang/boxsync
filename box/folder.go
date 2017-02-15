@@ -34,8 +34,8 @@ func (c *client) GetAllItems(folderId string) ([]Entity, error) {
 
 func (c *client) GetFolderEntity(folderId string) (*FolderEntity, error) {
 	items, err := c.GetAllItems(folderId)
-	if err == nil {
-		return nil, nil
+	if err != nil {
+		return nil, err
 	}
 	//var folderEntity FolderEntity
 	//fmt.Println("%6.2f", 12.0)
