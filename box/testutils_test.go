@@ -17,7 +17,7 @@ func newTestServerClient(endpointPath, responseBody string) (*httptest.Server, C
 
 	client := &client{
 		client:     &http.Client{},
-		apiBaseUrl: server.URL,
+		apiBaseURL: server.URL,
 	}
 
 	return server, client
