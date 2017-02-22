@@ -6,6 +6,7 @@ import (
 
 	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/box"
+	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/sync"
 )
 
 func main() {
@@ -32,4 +33,14 @@ func main() {
 	fmt.Println(r.ID)
 	fmt.Println(r)
 
+	syncRoot, err := sync.GetSyncRootFolder(client)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(syncRoot)
+
+	err = client.DownloadFile("64955701121", sync.LocalSyncRoot()+"/test.pdf")
+	if err != nil {
+		log.Fatal(err)
+	}
 }

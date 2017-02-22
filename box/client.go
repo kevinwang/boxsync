@@ -7,35 +7,39 @@ import (
 )
 
 const (
-	defaultApiBaseUrl = "https://api.box.com/2.0"
+	defaultAPIBaseURL = "https://api.box.com/2.0"
 )
 
 type Client interface {
 	Get(endpoint string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
-	GetFolderContents(folderId string) (*FolderContents, error)
-	GetFolder(folderId string) (*Folder, error)
-	GetFile(fileID string) (*File, error)
+	GetFolderContents(id string) (*FolderContents, error)
+	GetFolder(id string) (*Folder, error)
+	GetFile(id string) (*File, error)
+
+	DownloadFile(id, destPath string) error
 }
 
 type client struct {
 	client     *http.Client
-	apiBaseUrl string
+	apiBaseURL string
 }
 
 func NewClient(httpClient *http.Client) Client {
 	return &client{
 		client:     httpClient,
-		apiBaseUrl: defaultApiBaseUrl,
+		apiBaseURL: defaultAPIBaseURL,
 	}
 }
 
 func (c *client) Get(endpointPath string) ([]byte, error) {
-	r, err := c.client.Get(c.endpointUrl(endpointPath))
+	r, err := c.client.Get(c.endpointURL(endpointPath))
 	if err != nil {
 		return nil, err
-	} else if r.StatusCode >= 400 {
+	}
+	defer r.Body.Close()
+	if r.StatusCode >= 400 {
 		return nil, errors.New(r.Status)
 	}
 
@@ -47,6 +51,6 @@ func (c *client) Get(endpointPath string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *client) endpointUrl(path string) string {
-	return c.apiBaseUrl + path
+func (c *client) endpointURL(path string) string {
+	return c.apiBaseURL + path
 }
