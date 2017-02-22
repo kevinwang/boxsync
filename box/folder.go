@@ -2,10 +2,11 @@ package box
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
-func (c *client) GetFolder(folderId string) (*Folder, error) {
-	req, err := c.Get("/folders/" + folderId)
+func (c *client) GetFolder(id string) (*Folder, error) {
+	req, err := c.Get("/folders/" + id)
 	if err != nil {
 		return nil, err
 	}
@@ -17,8 +18,12 @@ func (c *client) GetFolder(folderId string) (*Folder, error) {
 	return &folder, nil
 }
 
-func (c *client) GetAllItems(folderId string) ([]Entity, error) {
-	req, err := c.Get("/folders/" + folderId + "/items")
+func (c *client) GetFolderContents(id string) (*FolderContents, error) {
+	req, err := c.Get("/folders/" + id + "/items" +
+		"?fields=sequence_id,sha1,name,description,size," +
+		"path_collection,created_at,modified_at,content_created_at," +
+		"content_modified_at,created_by,modified_by,owned_by,parent," +
+		"item_status,tags,has_collaborations,sync_status")
 	if err != nil {
 		return nil, err
 	}
@@ -28,31 +33,30 @@ func (c *client) GetAllItems(folderId string) ([]Entity, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(string(req))
 
-	return res.Entry, nil
-}
-
-func (c *client) GetFolderEntity(folderId string) (*FolderEntity, error) {
-	items, err := c.GetAllItems(folderId)
-	if err != nil {
-		return nil, err
-	}
-	//var folderEntity FolderEntity
-	//fmt.Println("%6.2f", 12.0)
 	var files []File
 	var folders []Folder
-	for _, ety := range items {
-		if ety.IsFile() {
-			var file File
-			ety.toFile(&file)
-			files = append(files, file)
+	for _, entry := range res.Entries {
+		var entryType struct {
+			Type string `json:"type"`
 		}
-		if ety.IsFolder() {
+		err := json.Unmarshal(entry, &entryType)
+		if err != nil {
+			return nil, err
+		}
+
+		switch entryType.Type {
+		case FileType:
+			var file File
+			json.Unmarshal(entry, &file)
+			files = append(files, file)
+		case FolderType:
 			var folder Folder
-			ety.toFolder(&folder)
+			json.Unmarshal(entry, &folder)
 			folders = append(folders, folder)
 		}
 	}
 
-	return &FolderEntity{FolderId: folderId, Files: files, Folders: folders}, nil
+	return &FolderContents{ID: id, Files: files, Folders: folders}, nil
 }

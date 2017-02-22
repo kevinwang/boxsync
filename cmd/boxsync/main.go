@@ -27,8 +27,9 @@ func main() {
 		fmt.Println(string(body))
 	*/
 	//fmt.Println(string("...heheh"))
-	r, _ := client.GetFolderEntity("0")
+	r, _ := client.GetFolderContents("4340470150")
 	//r, _ := client.GetFile("10257272849")
-	fmt.Println(r.FolderId)
+	fmt.Println(r.ID)
+	fmt.Println(r)
 
 }
