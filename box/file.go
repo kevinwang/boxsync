@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"path"
 )
 
 func (c *client) GetFile(id string) (*File, error) {
@@ -21,12 +20,6 @@ func (c *client) GetFile(id string) (*File, error) {
 }
 
 func (c *client) DownloadFile(id, destPath string) error {
-	dir := path.Dir(destPath)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
 	out, err := os.Create(destPath)
 	if err != nil {
 		return err

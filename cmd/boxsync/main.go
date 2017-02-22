@@ -16,30 +16,20 @@ func main() {
 	}
 
 	client := box.NewClient(httpClient)
-	user, _ := client.GetCurrentUser()
-	fmt.Println(user.ID)
 
-	//r, err := httpClient.Get("https://api.box.com/2.0/folders/0")
-	/*
-		if err != nil {
-			log.Fatal(err)
-		}
-		body, _ := ioutil.ReadAll(r.Body)
-		fmt.Println(string(body))
-	*/
-	//fmt.Println(string("...heheh"))
-	r, _ := client.GetFolderContents("4340470150")
-	//r, _ := client.GetFile("10257272849")
-	fmt.Println(r.ID)
-	fmt.Println(r)
+	user, err := client.GetCurrentUser()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(user.ID)
 
 	syncRoot, err := sync.GetSyncRootFolder(client)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(syncRoot)
+	fmt.Printf("Sync root: %s %q\n", syncRoot.ID, syncRoot.Name)
 
-	err = client.DownloadFile("64955701121", sync.LocalSyncRoot()+"/test.pdf")
+	err = sync.DownloadAll(client, syncRoot.ID, sync.LocalSyncRoot)
 	if err != nil {
 		log.Fatal(err)
 	}

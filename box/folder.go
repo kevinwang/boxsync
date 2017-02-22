@@ -2,16 +2,15 @@ package box
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 func (c *client) GetFolder(id string) (*Folder, error) {
-	req, err := c.Get("/folders/" + id)
+	body, err := c.Get("/folders/" + id)
 	if err != nil {
 		return nil, err
 	}
 	var folder Folder
-	err = json.Unmarshal(req, &folder)
+	err = json.Unmarshal(body, &folder)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +18,7 @@ func (c *client) GetFolder(id string) (*Folder, error) {
 }
 
 func (c *client) GetFolderContents(id string) (*FolderContents, error) {
-	req, err := c.Get("/folders/" + id + "/items" +
+	body, err := c.Get("/folders/" + id + "/items" +
 		"?fields=sequence_id,sha1,name,description,size," +
 		"path_collection,created_at,modified_at,content_created_at," +
 		"content_modified_at,created_by,modified_by,owned_by,parent," +
@@ -28,16 +27,15 @@ func (c *client) GetFolderContents(id string) (*FolderContents, error) {
 		return nil, err
 	}
 
-	var res Collection
-	err = json.Unmarshal(req, &res)
+	var collection Collection
+	err = json.Unmarshal(body, &collection)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(req))
 
 	var files []File
 	var folders []Folder
-	for _, entry := range res.Entries {
+	for _, entry := range collection.Entries {
 		var entryType struct {
 			Type string `json:"type"`
 		}
