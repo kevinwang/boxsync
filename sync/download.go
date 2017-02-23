@@ -24,12 +24,12 @@ func GetSyncRootFolder(client box.Client) (*box.Folder, error) {
 	}
 
 	for _, folder := range contents.Folders {
-		if folder.Name == "Box Sync" {
+		if folder.Name == syncRootName {
 			return &folder, nil
 		}
 	}
 
-	return nil, errors.New("Box Sync folder does not exist in Box root")
+	return nil, errors.New(syncRootName + " folder does not exist in Box root")
 }
 
 func DownloadAll(client box.Client, folderID, destPath string) error {
