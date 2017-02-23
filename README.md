@@ -1,5 +1,7 @@
 # Box Sync Client for Linux
 
+[![build status](https://gitlab.engr.illinois.edu/sp-box/boxsync/badges/master/build.svg)](https://gitlab.engr.illinois.edu/sp-box/boxsync/commits/master)
+
 ## Development
 
 First, install Go and set up your Go workspace by following [these instructions](https://golang.org/doc/code.html). In short:
