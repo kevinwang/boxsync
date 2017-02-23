@@ -45,11 +45,11 @@ func (c *client) GetFolderContents(id string) (*FolderContents, error) {
 		}
 
 		switch entryType.Type {
-		case FileType:
+		case TypeFile:
 			var file File
 			json.Unmarshal(entry, &file)
 			files = append(files, file)
-		case FolderType:
+		case TypeFolder:
 			var folder Folder
 			json.Unmarshal(entry, &folder)
 			folders = append(folders, folder)

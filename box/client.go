@@ -17,6 +17,7 @@ type Client interface {
 	GetFolderContents(id string) (*FolderContents, error)
 	GetFolder(id string) (*Folder, error)
 	GetFile(id string) (*File, error)
+	GetEvents(streamPosition string) (*EventCollection, error)
 
 	DownloadFile(id, destPath string) error
 }
