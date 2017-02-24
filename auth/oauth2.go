@@ -29,8 +29,7 @@ func Login() (*http.Client, error) {
 		client := newClient(conf, ctx, tok)
 		r, err := client.Get("https://api.box.com/2.0/users/me")
 		if err != nil {
-			fmt.Println(err)
-			store.Clear()
+			return nil, err
 		} else if r.StatusCode != 200 {
 			fmt.Println("Invalid session, clearing")
 			store.Clear()
