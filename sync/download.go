@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/box"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth/mocks"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/auth/mocks"
 )
 
 var (

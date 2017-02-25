@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/filemonitor"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/filemonitor"
 )
 
 func TestFileWatchWriteFile(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth"
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/box"
-	//"gitlab-beta.engr.illinois.edu/sp-box/boxsync/sync"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
+	//"gitlab.engr.illinois.edu/sp-box/boxsync/sync"
 )
 
 func main() {

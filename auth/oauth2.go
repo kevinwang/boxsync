@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
-	"gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth/store"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/auth/store"
 )
 
 func Login() (*http.Client, error) {

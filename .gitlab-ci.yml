@@ -3,9 +3,9 @@
 
 before_script:
   - export REPO_PATH=$(pwd)
-  - mkdir -p $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box
-  - ln -s $REPO_PATH $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
-  - cd $GOPATH/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+  - mkdir -p $GOPATH/src/gitlab.engr.illinois.edu/sp-box
+  - ln -s $REPO_PATH $GOPATH/src/gitlab.engr.illinois.edu/sp-box/boxsync
+  - cd $GOPATH/src/gitlab.engr.illinois.edu/sp-box/boxsync
 
 build:
   stage: build

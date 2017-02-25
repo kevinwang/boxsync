@@ -15,16 +15,16 @@ echo "export PATH=$GOPATH/bin:$PATH" >> ~/.bashrc
 Next, clone this repo:
 
 ```bash
-mkdir -p ~/go/src/gitlab-beta.engr.illinois.edu/sp-box
-git clone git@gitlab-beta.engr.illinois.edu:sp-box/boxsync.git ~/go/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+mkdir -p ~/go/src/gitlab.engr.illinois.edu/sp-box
+git clone git@gitlab.engr.illinois.edu:sp-box/boxsync.git ~/go/src/gitlab.engr.illinois.edu/sp-box/boxsync
 ```
 
 To build:
 
 ```bash
-cd ~/go/src/gitlab-beta.engr.illinois.edu/sp-box/boxsync
+cd ~/go/src/gitlab.engr.illinois.edu/sp-box/boxsync
 go install ./... # Build all main packages underneath the current directory and install in $GOPATH/bin
-                 # Same as `go install gitlab-beta.engr.illinois.edu/sp-box/boxsync/cmd/boxsync` in this case
+                 # Same as `go install gitlab.engr.illinois.edu/sp-box/boxsync/cmd/boxsync` in this case
 ```
 
 To run, just run `boxsync` because `$GOPATH/bin` is in your `$PATH`.
@@ -54,7 +54,7 @@ import (
     "golang.org/x/oauth2"
 
     // Internal packages
-    "gitlab-beta.engr.illinois.edu/sp-box/boxsync/auth/mocks"
+    "gitlab.engr.illinois.edu/sp-box/boxsync/auth/mocks"
 )
 ```
 
