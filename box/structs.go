@@ -83,3 +83,12 @@ type EventCollection struct {
 	NextStreamPosition int     `json:"next_stream_position"`
 	Entries            []Event `json:"entries"`
 }
+
+type UploadAttributes struct {
+	Name   string       `json:"name"`
+	Parent UploadParent `json:"parent"`
+}
+
+type UploadParent struct {
+	ID string `json:"id"`
+}
