@@ -25,6 +25,7 @@ type Client interface {
 
 	DownloadFile(id, destPath string) error
 	UploadFile(srcPath, parentID string) (*File, error)
+	UploadFileVersion(fileID, srcPath string) (*File, error)
 }
 
 type client struct {
