@@ -5,6 +5,7 @@ import (
 	"github.com/urfave/cli"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/sync"
 	"log"
 	"os"
 )
@@ -30,6 +31,89 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println("Current User Id: " + user.ID)
+				return nil
+			},
+		},
+		{
+			Name:    "checkSyncFolder",
+			Aliases: []string{"s"},
+			Usage:   "Check for Box Sync Folder",
+			Action: func(c *cli.Context) error {
+				syncRoot, err := sync.GetSyncRootFolder(client)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Printf("Sync root: %s %q\n", syncRoot.ID, syncRoot.Name)
+				return nil
+			},
+		},
+		{
+			Name:    "checkSyncFolder",
+			Aliases: []string{"s"},
+			Usage:   "Check for Box Sync Folder",
+			Action: func(c *cli.Context) error {
+				syncRoot, err := sync.GetSyncRootFolder(client)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Printf("Sync root: %s %q\n", syncRoot.ID, syncRoot.Name)
+				return nil
+			},
+		},
+		{
+			Name:    "downloadAll",
+			Aliases: []string{"dA"},
+			Usage:   "Download All files",
+			Action: func(c *cli.Context) error {
+				syncRoot, err := sync.GetSyncRootFolder(client)
+				if err != nil {
+					log.Fatal(err)
+				}
+				err = sync.DownloadAll(client, syncRoot.ID, sync.LocalSyncRoot)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return nil
+			},
+		},
+		{
+			Name:    "upload",
+			Aliases: []string{"up"},
+			Usage:   "Upload file",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 3 {
+					log.Fatal("Specify filename for upload")
+				}
+				parentId := "0"
+				if len(os.Args) > 3 {
+					parentId = os.Args[3]
+				}
+				file, err := client.UploadFile(os.Args[2], parentId)
+
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Upload successful")
+				fmt.Println(file)
+				return nil
+			},
+		},
+		{
+			Name:    "uploadNewVersion",
+			Aliases: []string{"upN"},
+			Usage:   "Upload existing file with new version",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 4 {
+					log.Fatal("Specify fileId for upload & source path")
+				}
+
+				file, err := client.UploadFileVersion(os.Args[2], os.Args[3])
+
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Upload new version successful")
+				fmt.Println(file)
 				return nil
 			},
 		},
