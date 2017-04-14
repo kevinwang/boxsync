@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	//"os"
+	"os"
+	"path"
 
 	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
@@ -55,5 +56,14 @@ func main() {
 		fmt.Println(file)
 	*/
 
-	cache.InitCache(client, "Box Sync")
+	boxRoot := path.Join(os.Getenv("HOME"), "Box Sync")
+	if _, err := os.Stat(boxRoot); os.IsNotExist(err) {
+		fmt.Printf("Creating directory %s\n", boxRoot)
+		err := os.MkdirAll(boxRoot, 0755)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	cache.InitCache(client, boxRoot)
 }

@@ -94,13 +94,13 @@ func initCacheRemote(client box.Client, root string, db *sql.DB) {
 		log.Fatal(errRoot)
 	}
 
-	err := CacheAll(client, rootFolder.ID, root, db, root)
+	err := CacheAll(client, rootFolder.ID, root, "", db, root)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func CacheAll(client box.Client, folderID, destPath string, db *sql.DB, table string) error {
+func CacheAll(client box.Client, folderID, destPath string, remotePath string, db *sql.DB, table string) error {
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatal(err)
@@ -120,8 +120,9 @@ func CacheAll(client box.Client, folderID, destPath string, db *sql.DB, table st
 	for _, file := range contents.Files {
 		var filePathLoc string
 		var fileSHA string
-		filePath := path.Join(destPath, file.Name)
-		rows, err := db.Query("SELECT path, sha1 FROM \""+table+"\" WHERE path = \""+filePath+"\"", table, filePath)
+		remoteFilePath := path.Join(remotePath, file.Name)
+		localFilePath := path.Join(destPath, remoteFilePath)
+		rows, err := db.Query("SELECT path, sha1 FROM \"" + table + "\" WHERE path = \"" + remoteFilePath + "\"")
 		if err != nil {
 			log.Print("recursive file call problem on table " + table)
 			log.Fatal(err)
@@ -131,16 +132,16 @@ func CacheAll(client box.Client, folderID, destPath string, db *sql.DB, table st
 		rows.Close()
 
 		if strings.Compare(fileSHA, file.SHA1) == 0 {
-			_, err = stmt.Exec(file.ID, true, file.SHA1, filePath)
+			_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err = stmt.Exec(file.ID, true, file.SHA1, filePath)
+			_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
 			if err != nil {
 				return err
 			}
-			err = client.DownloadFile(file.ID, filePath)
+			err = client.DownloadFile(file.ID, localFilePath)
 			if err != nil {
 				return err
 			}
@@ -151,17 +152,18 @@ func CacheAll(client box.Client, folderID, destPath string, db *sql.DB, table st
 	stmt.Close()
 
 	for _, folder := range contents.Folders {
-		folderPath := path.Join(destPath, folder.Name)
+		remoteFolderPath := path.Join(remotePath, folder.Name)
+		localFolderPath := path.Join(destPath, remoteFolderPath)
 
-		if _, err := os.Stat(folderPath); os.IsNotExist(err) {
-			fmt.Printf("Creating directory %s\n", folderPath)
-			err := os.MkdirAll(folderPath, 0755)
+		if _, err := os.Stat(localFolderPath); os.IsNotExist(err) {
+			fmt.Printf("Creating directory %s\n", localFolderPath)
+			err := os.MkdirAll(localFolderPath, 0755)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = CacheAll(client, folder.ID, folderPath, db, table)
+		err = CacheAll(client, folder.ID, destPath, remoteFolderPath, db, table)
 		if err != nil {
 			return err
 		}
