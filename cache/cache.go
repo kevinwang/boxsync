@@ -15,10 +15,11 @@ import (
 )
 
 type CacheEntry struct {
-	path  sql.NullString
-	id    sql.NullInt64
-	sha1  sql.NullString
-	valid sql.NullBool
+	Path       sql.NullString
+	ID         sql.NullInt64
+	SHA1       sql.NullString
+	Valid      sql.NullBool
+	SequenceID sql.NullInt64
 }
 
 func InitCache(client box.Client, root string) *sql.DB {
@@ -35,7 +36,7 @@ func InitCache(client box.Client, root string) *sql.DB {
 	}
 
 	sqlStmt = `
-	create table "` + root + `" (path text not null primary key, id integer unique, sha1 text, valid boolean);
+	create table "` + root + `" (path text not null primary key, id integer unique, sha1 text, valid boolean, sequenceID text);
 	delete from "` + root + "\";"
 
 	_, err = db.Exec(sqlStmt)
@@ -44,10 +45,10 @@ func InitCache(client box.Client, root string) *sql.DB {
 		log.Fatal(err)
 	}
 
-	initCacheLocal(root, db)
 	if client != nil {
 		initCacheRemote(client, root, db)
 	}
+	//initCacheLocal(root, db)
 
 	return db
 }
@@ -59,7 +60,7 @@ func initCacheLocal(root string, db *sql.DB) {
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("insert into \"" + root + "\" (path, id, sha1, valid) values (?, ?, ?, ?)")
+	stmt, err := tx.Prepare("insert or ignore into \"" + root + "\" (path, id, sha1, valid) values (?, ?, ?, ?)")
 	if err != nil {
 		log.Print("Prepare returned an error")
 		log.Fatal(err)
@@ -71,12 +72,11 @@ func initCacheLocal(root string, db *sql.DB) {
 			//log.Print("Failed on path: " + filePath)
 			return err
 		}
-		/*
-			if info.IsDir() {
-				return nil
-			}
-		*/
-		fmt.Print(filePath + "\n")
+		if info.IsDir() {
+			return nil
+		}
+
+		filePath, _ = filepath.Rel(root, filePath)
 		_, err = stmt.Exec(filePath, nil, sync.SHA1(filePath), false)
 		if err != nil {
 			log.Print("Failed to add " + filePath)
@@ -106,9 +106,15 @@ func CacheAll(client box.Client, folderID, destPath string, remotePath string, d
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("update \"" + table + "\" set id = ? , valid = ?, sha1 = ? where path = ?")
+	stmt, err := tx.Prepare("update \"" + table + "\" set id = ? , valid = ?, sha1 = ? , sequenceID = ? where path = ?")
 	if err != nil {
 		log.Print("Prepare stmt returned an error")
+		log.Fatal(err)
+	}
+
+	stmtInsert, err := tx.Prepare("insert into  \"" + table + "\" (path, id, sha1, valid, sequenceID) values (?, ?, ?, ?, ?)")
+	if err != nil {
+		log.Print("Prepare stmtInsert returned an error")
 		log.Fatal(err)
 	}
 
@@ -128,19 +134,30 @@ func CacheAll(client box.Client, folderID, destPath string, remotePath string, d
 			log.Fatal(err)
 		}
 
-		rows.Scan(&filePathLoc, &fileSHA)
-		rows.Close()
+		if rows.Next() {
+			rows.Scan(&filePathLoc, &fileSHA)
+			rows.Close()
 
-		if strings.Compare(fileSHA, file.SHA1) == 0 {
-			_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
-			if err != nil {
-				return err
+			if strings.Compare(fileSHA, file.SHA1) == 0 {
+				_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
+				if err != nil {
+					return err
+				}
+
+				err = client.DownloadFile(file.ID, localFilePath)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
-			_, err = stmt.Exec(file.ID, true, file.SHA1, remoteFilePath)
-			if err != nil {
-				return err
-			}
+			rows.Close()
+
+			_, err = stmtInsert.Exec(remoteFilePath, file.ID, file.SHA1, true, file.SequenceID)
 			err = client.DownloadFile(file.ID, localFilePath)
 			if err != nil {
 				return err
@@ -159,6 +176,7 @@ func CacheAll(client box.Client, folderID, destPath string, remotePath string, d
 			fmt.Printf("Creating directory %s\n", localFolderPath)
 			err := os.MkdirAll(localFolderPath, 0755)
 			if err != nil {
+				log.Print("Creating directory error.")
 				return err
 			}
 		}
