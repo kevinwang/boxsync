@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
+	//"os"
 
 	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/cache"
 	//"gitlab.engr.illinois.edu/sp-box/boxsync/sync"
 )
 
@@ -42,13 +43,17 @@ func main() {
 	//}
 	//fmt.Println(events)
 
-	if len(os.Args) < 2 {
-		log.Fatal("Specify filename for upload")
-	}
-	file, err := client.UploadFile(os.Args[1], "0")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Upload successful")
-	fmt.Println(file)
+	/*
+		if len(os.Args) < 2 {
+			log.Fatal("Specify filename for upload")
+		}
+		file, err := client.UploadFile(os.Args[1], "0")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Upload successful")
+		fmt.Println(file)
+	*/
+
+	cache.InitCache(client, "Box Sync")
 }
