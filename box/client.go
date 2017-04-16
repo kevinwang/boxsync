@@ -14,14 +14,19 @@ const (
 )
 
 type Client interface {
-	Get(endpoint string) ([]byte, error)
+	Get(endpointPath string) ([]byte, error)
+	GetByURL(url string) ([]byte, error)
 	PostMultipart(endpointPath string, writer *multipart.Writer, body io.Reader) ([]byte, error)
+	Options(endpointPath string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
 	GetFolderContents(id string) (*FolderContents, error)
 	GetFolder(id string) (*Folder, error)
 	GetFile(id string) (*File, error)
+
 	GetEvents(streamPosition string) (*EventCollection, error)
+	GetLongPollURL() (string, error)
+	GetEventStream(longPollURL, streamPosition string, quit <-chan struct{}) (<-chan Event, <-chan error, error)
 
 	DownloadFile(id, destPath string) error
 	UploadFile(srcPath, parentID string) (*File, error)
@@ -43,7 +48,11 @@ func NewClient(httpClient *http.Client) Client {
 }
 
 func (c *client) Get(endpointPath string) ([]byte, error) {
-	r, err := c.client.Get(c.endpointURL(endpointPath))
+	return c.GetByURL(c.endpointURL(endpointPath))
+}
+
+func (c *client) GetByURL(url string) ([]byte, error) {
+	r, err := c.client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +62,20 @@ func (c *client) Get(endpointPath string) ([]byte, error) {
 
 func (c *client) PostMultipart(endpointPath string, writer *multipart.Writer, body io.Reader) ([]byte, error) {
 	r, err := c.client.Post(c.uploadEndpointURL(endpointPath), writer.FormDataContentType(), body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	return handleResponse(r)
+}
+
+func (c *client) Options(endpointPath string) ([]byte, error) {
+	req, err := http.NewRequest("OPTIONS", c.endpointURL(endpointPath), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

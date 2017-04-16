@@ -84,6 +84,23 @@ type EventCollection struct {
 	Entries            []Event `json:"entries"`
 }
 
+type LongPollURLResponse struct {
+	ChunkSize int                `json:"chunk_size"`
+	Entries   []LongPollURLEntry `json:"entries"`
+}
+
+type LongPollURLEntry struct {
+	Type         string `json:"type"`
+	URL          string `json:"url"`
+	TTL          string `json:"ttl"`
+	MaxRetries   string `json:"max_retries"`
+	RetryTimeout int    `json:"retry_timeout"`
+}
+
+type LongPollResponse struct {
+	Message string `json:"message"`
+}
+
 type UploadAttributes struct {
 	Name   string       `json:"name"`
 	Parent UploadParent `json:"parent"`

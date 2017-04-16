@@ -117,6 +117,35 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:    "watchEvents",
+			Aliases: []string{"wE"},
+			Usage:   "Output event stream in real time",
+			Action: func(c *cli.Context) error {
+				url, err := client.GetLongPollURL()
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Long poll URL: " + url)
+
+				quit := make(chan struct{})
+				events, errs, err := client.GetEventStream(url, box.StreamPositionNow, quit)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Event watching started, CTRL-C to quit")
+
+				for {
+					select {
+					case event := <-events:
+						fmt.Println(event)
+					case err := <-errs:
+						log.Fatal(err)
+					}
+				}
+				return nil
+			},
+		},
 	}
 
 	app.Run(os.Args)

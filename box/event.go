@@ -2,7 +2,9 @@ package box
 
 import (
 	"encoding/json"
+	"errors"
 	"net/url"
+	"strconv"
 )
 
 const (
@@ -56,4 +58,70 @@ func (c *client) GetEvents(streamPosition string) (*EventCollection, error) {
 		return nil, err
 	}
 	return &events, nil
+}
+
+func (c *client) GetLongPollURL() (string, error) {
+	body, err := c.Options("/events")
+	if err != nil {
+		return "", err
+	}
+	var resp LongPollURLResponse
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		return "", err
+	}
+	if resp.ChunkSize != 1 {
+		return "", errors.New("Long poll chunk size is not 1")
+	}
+	return resp.Entries[0].URL, nil
+}
+
+func (c *client) GetEventStream(longPollURL, streamPosition string, quit <-chan struct{}) (<-chan Event, <-chan error, error) {
+	eventStream := make(chan Event)
+	errorStream := make(chan error)
+
+	if streamPosition == "now" || streamPosition == "" {
+		collection, err := c.GetEvents("now")
+		if err != nil {
+			return nil, nil, err
+		}
+		streamPosition = strconv.Itoa(collection.NextStreamPosition)
+	}
+
+	go func() {
+		for {
+			select {
+			case <-quit:
+				break
+			default:
+			}
+
+			body, err := c.GetByURL(longPollURL + "&streamPosition=" + streamPosition)
+			if err != nil {
+				errorStream <- err
+				break
+			}
+			var resp LongPollResponse
+			err = json.Unmarshal(body, &resp)
+			if err != nil {
+				errorStream <- err
+				break
+			}
+			if resp.Message != "new_change" {
+				errorStream <- err
+				break
+			}
+			collection, err := c.GetEvents(streamPosition)
+			if err != nil {
+				errorStream <- err
+				break
+			}
+			for _, event := range collection.Entries {
+				eventStream <- event
+			}
+			streamPosition = strconv.Itoa(collection.NextStreamPosition)
+		}
+	}()
+
+	return eventStream, errorStream, nil
 }
