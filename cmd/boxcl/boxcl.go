@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/urfave/cli"
+
 	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/sync"
-	"log"
-	"os"
 )
 
 func main() {
