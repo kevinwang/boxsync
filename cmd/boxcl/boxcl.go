@@ -48,19 +48,6 @@ func main() {
 			},
 		},
 		{
-			Name:    "checkSyncFolder",
-			Aliases: []string{"s"},
-			Usage:   "Check for Box Sync Folder",
-			Action: func(c *cli.Context) error {
-				syncRoot, err := sync.GetSyncRootFolder(client)
-				if err != nil {
-					log.Fatal(err)
-				}
-				fmt.Printf("Sync root: %s %q\n", syncRoot.ID, syncRoot.Name)
-				return nil
-			},
-		},
-		{
 			Name:    "downloadAll",
 			Aliases: []string{"dA"},
 			Usage:   "Download All files",
