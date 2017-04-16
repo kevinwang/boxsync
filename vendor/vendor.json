@@ -15,10 +15,6 @@
 			"revisionTime": "2016-10-26T20:31:22Z"
 		},
 		{
-			"path": "github.com/mattn/go-slite3",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "6ZV/m7lRaCJMopHqHHjmcOy9s2A=",
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "cf7286f069c3ef596efcc87781a4653a2e7607bd",
