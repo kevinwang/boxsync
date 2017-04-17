@@ -25,12 +25,12 @@ func TestBasicCache(t *testing.T) {
 	os.Create("testing_tmp/dir1/test3")
 
 	checks := map[string]bool{
-		"testing_tmp/test1":      false,
-		"testing_tmp/test2":      false,
-		"testing_tmp/test3":      false,
-		"testing_tmp/dir1/test1": false,
-		"testing_tmp/dir1/test2": false,
-		"testing_tmp/dir1/test3": false,
+		"test1":      false,
+		"test2":      false,
+		"test3":      false,
+		"dir1/test1": false,
+		"dir1/test2": false,
+		"dir1/test3": false,
 	}
 
 	db := cache.InitCache(nil, "testing_tmp")

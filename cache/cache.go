@@ -48,7 +48,7 @@ func InitCache(client box.Client, root string) *sql.DB {
 	if client != nil {
 		initCacheRemote(client, root, db)
 	}
-	//initCacheLocal(root, db)
+	initCacheLocal(root, db)
 
 	return db
 }
