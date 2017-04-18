@@ -20,20 +20,21 @@ type Client interface {
 	Options(endpointPath string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
-	GetFolderContents(id string) (*FolderContents, error)
-	GetFolder(id string) (*Folder, error)
-	GetFile(id string) (*File, error)
+
 	CreateFolder(name, parentID string) (*Folder, error)
-	DeleteFile(id string) error
+	GetFolder(id string) (*Folder, error)
+	GetFolderContents(id string) (*FolderContents, error)
 	DeleteFolder(id string, recursive bool) error
+
+	GetFile(id string) (*File, error)
+	DownloadFile(id, destPath string) error
+	UploadFile(srcPath, parentID string) (*File, error)
+	UploadFileVersion(fileID, srcPath string) (*File, error)
+	DeleteFile(id string) error
 
 	GetEvents(streamPosition string) (*EventCollection, error)
 	GetLongPollURL() (string, error)
 	GetEventStream(longPollURL, streamPosition string, quit <-chan struct{}) (<-chan Event, <-chan error, error)
-
-	DownloadFile(id, destPath string) error
-	UploadFile(srcPath, parentID string) (*File, error)
-	UploadFileVersion(fileID, srcPath string) (*File, error)
 }
 
 type client struct {
