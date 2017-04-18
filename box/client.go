@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 )
 
@@ -16,7 +15,7 @@ const (
 type Client interface {
 	Get(endpointPath string) ([]byte, error)
 	GetByURL(url string) ([]byte, error)
-	PostMultipart(endpointPath string, writer *multipart.Writer, body io.Reader) ([]byte, error)
+	Post(endpointPath, bodyType string, body io.Reader) ([]byte, error)
 	Options(endpointPath string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
@@ -60,8 +59,8 @@ func (c *client) GetByURL(url string) ([]byte, error) {
 	return handleResponse(r)
 }
 
-func (c *client) PostMultipart(endpointPath string, writer *multipart.Writer, body io.Reader) ([]byte, error) {
-	r, err := c.client.Post(c.uploadEndpointURL(endpointPath), writer.FormDataContentType(), body)
+func (c *client) Post(endpointPath, bodyType string, body io.Reader) ([]byte, error) {
+	r, err := c.client.Post(c.uploadEndpointURL(endpointPath), bodyType, body)
 	if err != nil {
 		return nil, err
 	}

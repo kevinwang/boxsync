@@ -73,7 +73,7 @@ func (c *client) UploadFile(srcPath, parentID string) (*File, error) {
 		return nil, err
 	}
 
-	respBody, err := c.PostMultipart("/files/content", writer, fileBody)
+	respBody, err := c.Post("/files/content", writer.FormDataContentType(), fileBody)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (c *client) UploadFileVersion(fileID, srcPath string) (*File, error) {
 		return nil, err
 	}
 
-	respBody, err := c.PostMultipart("/files/"+fileID+"/content", writer, fileBody)
+	respBody, err := c.Post("/files/"+fileID+"/content", writer.FormDataContentType(), fileBody)
 	if err != nil {
 		return nil, err
 	}
