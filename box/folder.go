@@ -1,6 +1,7 @@
 package box
 
 import (
+	"bytes"
 	"encoding/json"
 )
 
@@ -57,4 +58,31 @@ func (c *client) GetFolderContents(id string) (*FolderContents, error) {
 	}
 
 	return &FolderContents{ID: id, Files: files, Folders: folders}, nil
+}
+
+func (c *client) CreateFolder(name, parentID string) (*Folder, error) {
+	attr, err := attributesJSON(name, parentID)
+	if err != nil {
+		return nil, err
+	}
+	body, err := c.Post("/folders", "application/json", bytes.NewBuffer(attr), false)
+	if err != nil {
+		return nil, err
+	}
+	var folder Folder
+	err = json.Unmarshal(body, &folder)
+	if err != nil {
+		return nil, err
+	}
+	return &folder, nil
+}
+
+func (c *client) DeleteFolder(id string, recursive bool) error {
+	var err error
+	if recursive {
+		_, err = c.Delete("/folders/" + id + "?recursive=true")
+	} else {
+		_, err = c.Delete("/folders/" + id)
+	}
+	return err
 }

@@ -101,11 +101,11 @@ type LongPollResponse struct {
 	Message string `json:"message"`
 }
 
-type UploadAttributes struct {
-	Name   string       `json:"name"`
-	Parent UploadParent `json:"parent"`
+type Attributes struct {
+	Name   string `json:"name"`
+	Parent Parent `json:"parent"`
 }
 
-type UploadParent struct {
+type Parent struct {
 	ID string `json:"id"`
 }

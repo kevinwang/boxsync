@@ -135,6 +135,58 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:  "mkdir",
+			Usage: "Create folder",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 3 {
+					log.Fatal("Specify folder name")
+				}
+				parentId := "0"
+				if len(os.Args) > 3 {
+					parentId = os.Args[3]
+				}
+				folder, err := client.CreateFolder(os.Args[2], parentId)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Folder created")
+				fmt.Println(folder)
+				return nil
+			},
+		},
+		{
+			Name:    "rmFile",
+			Aliases: []string{"rm"},
+			Usage:   "Delete file",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 3 {
+					log.Fatal("Specify file id")
+				}
+				err := client.DeleteFile(os.Args[2])
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("File deleted")
+				return nil
+			},
+		},
+		{
+			Name:    "rmFolder",
+			Aliases: []string{"rmdir"},
+			Usage:   "Delete folder recursively",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 3 {
+					log.Fatal("Specify folder id")
+				}
+				err := client.DeleteFolder(os.Args[2], true)
+				if err != nil {
+					log.Fatal(err)
+				}
+				fmt.Println("Folder deleted")
+				return nil
+			},
+		},
 	}
 
 	app.Run(os.Args)

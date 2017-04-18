@@ -15,13 +15,17 @@ const (
 type Client interface {
 	Get(endpointPath string) ([]byte, error)
 	GetByURL(url string) ([]byte, error)
-	Post(endpointPath, bodyType string, body io.Reader) ([]byte, error)
+	Post(endpointPath, bodyType string, body io.Reader, upload bool) ([]byte, error)
+	Delete(endpointPath string) ([]byte, error)
 	Options(endpointPath string) ([]byte, error)
 
 	GetCurrentUser() (*User, error)
 	GetFolderContents(id string) (*FolderContents, error)
 	GetFolder(id string) (*Folder, error)
 	GetFile(id string) (*File, error)
+	CreateFolder(name, parentID string) (*Folder, error)
+	DeleteFile(id string) error
+	DeleteFolder(id string, recursive bool) error
 
 	GetEvents(streamPosition string) (*EventCollection, error)
 	GetLongPollURL() (string, error)
@@ -59,8 +63,26 @@ func (c *client) GetByURL(url string) ([]byte, error) {
 	return handleResponse(r)
 }
 
-func (c *client) Post(endpointPath, bodyType string, body io.Reader) ([]byte, error) {
-	r, err := c.client.Post(c.uploadEndpointURL(endpointPath), bodyType, body)
+func (c *client) Post(endpointPath, bodyType string, body io.Reader, upload bool) ([]byte, error) {
+	url := c.endpointURL(endpointPath)
+	if upload {
+		url = c.uploadEndpointURL(endpointPath)
+	}
+	r, err := c.client.Post(url, bodyType, body)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Body.Close()
+	return handleResponse(r)
+}
+
+func (c *client) Delete(endpointPath string) ([]byte, error) {
+	req, err := http.NewRequest("DELETE", c.endpointURL(endpointPath), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

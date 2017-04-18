@@ -73,7 +73,7 @@ func (c *client) UploadFile(srcPath, parentID string) (*File, error) {
 		return nil, err
 	}
 
-	respBody, err := c.Post("/files/content", writer.FormDataContentType(), fileBody)
+	respBody, err := c.Post("/files/content", writer.FormDataContentType(), fileBody, true)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (c *client) UploadFileVersion(fileID, srcPath string) (*File, error) {
 		return nil, err
 	}
 
-	respBody, err := c.Post("/files/"+fileID+"/content", writer.FormDataContentType(), fileBody)
+	respBody, err := c.Post("/files/"+fileID+"/content", writer.FormDataContentType(), fileBody, true)
 	if err != nil {
 		return nil, err
 	}
@@ -112,10 +112,15 @@ func (c *client) UploadFileVersion(fileID, srcPath string) (*File, error) {
 	return handleUploadResponse(respBody)
 }
 
+func (c *client) DeleteFile(id string) error {
+	_, err := c.Delete("/files/" + id)
+	return err
+}
+
 func attributesJSON(filename, parentID string) ([]byte, error) {
-	attributes := UploadAttributes{
+	attributes := Attributes{
 		Name:   filename,
-		Parent: UploadParent{ID: parentID},
+		Parent: Parent{ID: parentID},
 	}
 	attributesJSON, err := json.Marshal(attributes)
 	if err != nil {
