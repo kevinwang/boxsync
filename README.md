@@ -84,3 +84,46 @@ I found following plugins can come handy for vim.
 (5) Install tagging tool gotags.
 
 Don't forget to configure ~/.vimrc, various configurations can be found online.
+
+## Command line tool Manual
+
+After building `boxcl`, command line tool is ready to use.
+
+For more help information, `--help` is available for quick check.
+```
+$ boxcl [command_name] --help
+```
+
+Use command line example:
+```
+$ boxcl [command_name] [arguments...(will specify in following list)]
+```
+
+## Command line list
+
+`user` - Allow user to login with OAuth for initialization. It will print the user id after login successes.
+
+`dir` - Check for the availability of `$HOME/Box Sync` and make it the default sync folder. Print out the folder id.
+
+`dlA` - Download all contents from cloud `Box Sync` folder.
+
+`up [file_id]` - Upload file to Box root directory.
+
+`up [file_id] [parent_folder_ id]` - Upload file to specific parent folder.
+
+`upN [file_id] [file_local_src_path]` - Replace a specific file with new version.
+
+`wE` -  Output event stream in real time.
+
+`mkdir [folder_name]` - Create folder with `[folder_name]` in Box root directory.
+
+`mkdir [folder_name] [parent_folder_ id]` - Create folder with `[folder_name]` in specific parent folder.
+
+`rm [fild_id]` - Delete file.
+
+`rmdir [folder_id]` - Delete folder recursively.
+
+`ls` - List all files & folders in Box root directory.
+
+`ls [parent_folder_id]` - List all files & folders in the parent folder.
+
