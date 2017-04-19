@@ -25,7 +25,7 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:    "getCurrUser",
-			Aliases: []string{"u"},
+			Aliases: []string{"user"},
 			Usage:   "Print current user ID",
 			Action: func(c *cli.Context) error {
 				user, err := client.GetCurrentUser()
@@ -51,7 +51,7 @@ func main() {
 		},
 		{
 			Name:    "downloadAll",
-			Aliases: []string{"dA"},
+			Aliases: []string{"dlA"},
 			Usage:   "Download All files",
 			Action: func(c *cli.Context) error {
 				syncRoot, err := sync.GetSyncRootFolder(client)
@@ -192,10 +192,13 @@ func main() {
 			Aliases: []string{"ls"},
 			Usage:   "List all files in the folder",
 			Action: func(c *cli.Context) error {
-				if len(os.Args) < 3 {
-					log.Fatal("Specify folder id")
+
+				parentId := "0"
+				if len(os.Args) > 2 {
+					parentId = os.Args[2]
 				}
-				fcontent, err := client.GetFolderContents(os.Args[2])
+
+				fcontent, err := client.GetFolderContents(parentId)
 				if err != nil {
 					log.Fatal(err)
 				}
