@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path"
 
 	"gitlab.engr.illinois.edu/sp-box/boxsync/auth"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/box"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/cache"
+	"gitlab.engr.illinois.edu/sp-box/boxsync/filemonitor"
 	//"gitlab.engr.illinois.edu/sp-box/boxsync/sync"
 )
 
@@ -65,5 +67,27 @@ func main() {
 		}
 	}
 
-	cache.InitCache(client, boxRoot)
+	cache, err := cache.NewCache(client)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	killSignalC := make(chan os.Signal, 1)
+	signal.Notify(killSignalC, os.Interrupt, os.Kill)
+
+	watcher := filemonitor.NewWatcher(func(*filemonitor.FileWatchEvent) {
+		_ = cache.RescanLocalTree()
+	})
+	watcher.AddAll(boxRoot)
+
+	for {
+		select {
+		case <-watcher.FileEventC:
+		case <-killSignalC:
+			//for now just handle kill signals
+			log.Print("Kill signal triggered, quit...")
+			watcher.Close()
+			return
+		}
+	}
 }
