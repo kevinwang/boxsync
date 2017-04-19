@@ -1,5 +1,6 @@
 package cache_test
 
+/*
 import (
 	"fmt"
 	"os"
@@ -9,7 +10,7 @@ import (
 	//"gitlab.engr.illinois.edu/sp-box/boxsync/box"
 	"gitlab.engr.illinois.edu/sp-box/boxsync/cache"
 )
-
+*/
 /*
 func TestBasicCache(t *testing.T) {
 	os.Mkdir("testing_tmp", 0777)
