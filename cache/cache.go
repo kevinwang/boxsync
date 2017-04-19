@@ -165,28 +165,29 @@ func (c *syncCache) SetEntryInvalid(path string) error {
 }
 
 func (c *syncCache) RescanLocalTree() error {
-	deletesFolder := map[string]bool{}
-	row, err := c.db.Query("SELECT Path FROM folders;")
+	deletesFolder := map[string]string{}
+	row, err := c.db.Query("SELECT Path, ID FROM folders;")
 	if err != nil {
 		return err
 	}
 
 	var pathName string
+	var ID string
 	for row.Next() {
-		row.Scan(&pathName)
-		deletesFolder[pathName] = true
+		row.Scan(&pathName, &ID)
+		deletesFolder[pathName] = ID
 	}
 	row.Close()
 
-	deletesFile := map[string]bool{}
-	row, err = c.db.Query("SELECT Path FROM files;")
+	deletesFile := map[string]string{}
+	row, err = c.db.Query("SELECT Path, ID FROM files;")
 	if err != nil {
 		return err
 	}
 
 	for row.Next() {
-		row.Scan(&pathName)
-		deletesFile[pathName] = true
+		row.Scan(&pathName, &ID)
+		deletesFile[pathName] = ID
 	}
 	row.Close()
 
@@ -252,6 +253,37 @@ func (c *syncCache) RescanLocalTree() error {
 		return nil
 	})
 
+	tx, err := c.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	deleteFolderStmt, err := tx.Prepare(`delete from folders where Path = ?;`)
+	deleteFileStmt, err := tx.Prepare(`delete from files where Path = ?;`)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range deletesFolder {
+		deleteFolderStmt.Exec(k)
+		err := c.client.DeleteFolder(v, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	for k, v := range deletesFile {
+		deleteFileStmt.Exec(k)
+		err := c.client.DeleteFile(v)
+		if err != nil {
+			return err
+		}
+	}
+
+	deleteFileStmt.Close()
+	deleteFolderStmt.Close()
+	tx.Commit()
+
 	return nil
 }
 
@@ -287,7 +319,7 @@ func (c *syncCache) UpdateCache() error {
 func (c *syncCache) hardCacheAll(folderID, destPath, remotePath string) error {
 	tx, err := c.db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	updateFileStmt, err := tx.Prepare(`update files set ID = ?, Valid = ?, SHA1 = ?, SequenceID = ?, ParentID = ? where Path = ?;`)
