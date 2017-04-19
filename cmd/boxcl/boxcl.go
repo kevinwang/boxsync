@@ -38,7 +38,7 @@ func main() {
 		},
 		{
 			Name:    "checkSyncFolder",
-			Aliases: []string{"s"},
+			Aliases: []string{"dir"},
 			Usage:   "Check for Box Sync Folder",
 			Action: func(c *cli.Context) error {
 				syncRoot, err := sync.GetSyncRootFolder(client)
@@ -83,7 +83,7 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println("Upload successful")
-				fmt.Println(file)
+				fmt.Println("File Name & ID: " + file.Name + " " + file.ID)
 				return nil
 			},
 		},
@@ -102,7 +102,7 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println("Upload new version successful")
-				fmt.Println(file)
+				fmt.Println("File Name & ID: " + file.Name + " " + file.ID)
 				return nil
 			},
 		},
@@ -184,6 +184,33 @@ func main() {
 					log.Fatal(err)
 				}
 				fmt.Println("Folder deleted")
+				return nil
+			},
+		},
+		{
+			Name:    "ls",
+			Aliases: []string{"ls"},
+			Usage:   "List all files in the folder",
+			Action: func(c *cli.Context) error {
+				if len(os.Args) < 3 {
+					log.Fatal("Specify folder id")
+				}
+				fcontent, err := client.GetFolderContents(os.Args[2])
+				if err != nil {
+					log.Fatal(err)
+				}
+				fdlist := fcontent.Folders
+				felist := fcontent.Files
+				fmt.Println("Folders:")
+				for _, fd := range fdlist {
+					fmt.Println(fd.Name + " " + fd.ID)
+				}
+				fmt.Println("---")
+				fmt.Println("Files:")
+				for _, fe := range felist {
+					fmt.Println(fe.Name + " " + fe.ID)
+				}
+				//fmt.Println(fcontent.Folders)
 				return nil
 			},
 		},
