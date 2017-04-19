@@ -10,6 +10,7 @@ import (
 	"gitlab.engr.illinois.edu/sp-box/boxsync/cache"
 )
 
+/*
 func TestBasicCache(t *testing.T) {
 	os.Mkdir("testing_tmp", 0777)
 	defer os.RemoveAll("testing_tmp/")
@@ -70,3 +71,4 @@ func TestBasicCache(t *testing.T) {
 		}
 	}
 }
+*/
