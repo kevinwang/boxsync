@@ -500,6 +500,7 @@ func (c *syncCache) addFolderToDB(folderPath string) (string, error) {
 }
 
 func (c *syncCache) AddFileToDB(filePath string) (string, error) {
+	origFile := filePath
 	relPath, err := filepath.Rel(c.localRootDirectory, filePath)
 	if err != nil {
 		relPath = filePath
@@ -507,10 +508,10 @@ func (c *syncCache) AddFileToDB(filePath string) (string, error) {
 
 	filePath = filepath.Join(filepath.Base(c.remoteRootDirectory), relPath)
 
-	return c.addFileToDB(filePath)
+	return c.addFileToDB(filePath, origFile)
 }
 
-func (c *syncCache) addFileToDB(filePath string) (string, error) {
+func (c *syncCache) addFileToDB(filePath, origFile string) (string, error) {
 	parent, err := c.db.Query("SELECT ParentID FROM files WHERE Path = \"" + filePath + "\";")
 	if err != nil {
 		return "", err
@@ -527,7 +528,7 @@ func (c *syncCache) addFileToDB(filePath string) (string, error) {
 			return "", err
 		}
 
-		file, err := c.client.UploadFile(filePath, parentID)
+		file, err := c.client.UploadFile(origFile, parentID)
 		if err != nil {
 			return "", err
 		}
